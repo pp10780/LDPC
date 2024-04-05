@@ -30,6 +30,40 @@ void print_matrix_int(int** matrix, int rows, int cols)
     }
 }
 
+//Function to print the structure parity check(pchk)
+void print_parity_check(pchk mat){
+    if(mat.type == 0){
+        //normal
+        for (int i = 0; i < mat.n_row; i++)
+        {
+            printf("[ ");
+            for (int j = 0; j < mat.n_col; j++)
+                printf("%d ", mat.A[i][j]);
+            printf("]\n");
+        }
+    }
+    else{
+        //sparse
+        for (int i = 0; i < mat.n_row; i++){
+            printf("[ ");
+            for (int j = 0; j < mat.A[i][0]; j++)
+                printf("%d ", mat.A[i][j+1]);    
+            printf("]\n");
+        }
+
+    }
+}
+
+//function to print sparse floating point matrices
+void print_sparse_float(pchk index,float **mat){
+    for (int i = 0; i < index.n_row; i++){
+        printf("[ ");
+        for (int j = 0; j < index.A[i][0]; j++)
+        printf("%f ", mat[i][j]);    
+        printf("]\n");
+    }   
+}
+
 // Function to print a matrix float
 void print_matrix_float(float** matrix, int rows, int cols)
 {
@@ -61,7 +95,7 @@ void possible_codeword_list(int ***list)
 }
 
 // Function to check all possible codewords
-void check_possible_codewords(int H[NUM_CHECKS][CODEWORD_LEN])
+void check_possible_codewords(pchk H)
 {
     int *codeword_decoded;
     int **possible_codeword_l;

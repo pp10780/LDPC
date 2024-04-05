@@ -1,14 +1,25 @@
-#define MAX_ITERATIONS 5
+#ifndef DEF
+    #define DEF
 
-#define CODEWORD_LEN 6 // N
-#define MESSAGE_LEN 3  // K
-#define NUM_CHECKS 4   // M
+    #define MAX_ITERATIONS 5
 
-#define BSC_MODE 0
-#define AWGN_MODE 1
+    #define CODEWORD_LEN 6 // N this cannot be fixed
+    #define MESSAGE_LEN 3  // K this cannot be fixed
+    #define NUM_CHECKS 4   // M this cannot be fixed
 
-#define CURR_MODE BSC_MODE
+    #define BSC_MODE 0
+    #define AWGN_MODE 1
 
-#define BSC_ERROR_RATE 0.2
+    #define CURR_MODE BSC_MODE
 
-//#define DEBUG
+    #define BSC_ERROR_RATE 0.2
+
+    typedef struct Pchk{
+        int n_row;
+        int n_col;
+        int type;
+        int **A;
+    } pchk;
+
+    #define DEBUG
+#endif

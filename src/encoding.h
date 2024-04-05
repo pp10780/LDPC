@@ -8,6 +8,6 @@
 #include "defs.h"
 
 // Function to encode the message
-void encode(int message[MESSAGE_LEN], int generator[MESSAGE_LEN][CODEWORD_LEN], int* codeword);
+void encode(int* message, pchk generator, int* codeword);
 
 #endif
