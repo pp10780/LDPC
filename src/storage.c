@@ -2,7 +2,6 @@
 
 void **get_matrix_from_file(pchk *matrix,char *filename){
     FILE *f = fopen (filename,"r");
-    int i=0;
 
     //Open file to read
     if(f==NULL){
@@ -14,11 +13,10 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     fread(&(matrix->n_row),sizeof(int),1,f);
     fread(&(matrix->n_col),sizeof(int),1,f);
     fread(&(matrix->type),sizeof(int),1,f);
-
-    //A
-    matrix->A = (int**)malloc(matrix->n_row*sizeof(int*));
+    
     if(matrix->type ==0){
         //normal
+        matrix->A = (int**)malloc(matrix->n_row*sizeof(int*));
         for(int r=0;r<matrix->n_row;r++){
             matrix->A[r] = (int*)malloc(matrix->n_col*sizeof(int));
             fread(matrix->A[r],sizeof(int),matrix->n_col,f);
@@ -26,12 +24,13 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     }
     else{
         //sparse
-        for(int r=0;r<matrix->n_row;r++){
-            fread(&i,sizeof(int),1,f);
-            matrix->A[r] = (int*)malloc((i+1)*sizeof(int));
-            matrix->A[r][0] = i;
-            fread(&(matrix->A[r][1]),sizeof(int),i,f);
-        }
+        matrix->A    = (int**)malloc(2               *sizeof(int*));
+        matrix->A[0] = (int *)malloc(matrix->type    *sizeof(int ));
+        matrix->A[1] = (int *)malloc(matrix->n_row+1 *sizeof(int ));
+
+        
+        fread(matrix->A[0],sizeof(int),matrix->type,f);
+        fread(matrix->A[1],sizeof(int),matrix->n_row+1,f);
     }
     fclose(f);
     return NULL;

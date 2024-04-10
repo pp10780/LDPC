@@ -19,7 +19,7 @@ void print_matrix_int(int** matrix, int rows, int cols);
 void print_parity_check(pchk mat);
 
 //function to print sparse floating point matrices
-void print_sparse_float(pchk index,float **mat);
+void print_sparse_float(pchk index,float *mat);
 
 // Function to print a matrix float
 void print_matrix_float(float** matrix, int rows, int cols);

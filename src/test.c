@@ -1,39 +1,51 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[]){
-    int nrow=3,ncol=6,type=1;
-    int A1[6] = {3,0,1,3};
-    int A2[6] = {3,1,2,4};
-    int A3[6] = {4,0,1,2,5};
+    int nrow=3,ncol=6,type=1,nelements=10;
+
+    //H
+    //int E[10] = {0,1,3,1,2,4,0,1,2,5};
+    //int r[4]  = {0,3,6,10};
+
+    //G
+    int E[10] = {0,3,5,1,3,4,5,2,4,5};
+    int r[4]  = {0,3,7,10};
 
     FILE *f;
+    char filename[100] = "matrices/G1.csr";
 
-    f = fopen ("matrices/Hs1","w+");
+    f = fopen (filename,"w+");
 
     fwrite(&nrow,sizeof(int),1,f);
     fwrite(&ncol,sizeof(int),1,f);
-    fwrite(&type,sizeof(int),1,f);
-    fwrite(A1,sizeof(int),6,f);
-    fwrite(A2,sizeof(int),6,f);
-    fwrite(A3,sizeof(int),6,f);
+    fwrite(&nelements,sizeof(int),1,f);
 
-    fclose(f);
+    fwrite(E,sizeof(int),10,f);
+    fwrite(r,sizeof(int),4,f);
     
-    f = fopen (argv[1],"r");
+    fclose(f);
+
+    //--------------------------------------------------------------------------------
+    //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    //--------------------------------------------------------------------------------
+    f = fopen (filename,"r");
     int i=0;
+    int e=0;
     int **A;
 
     fread(&nrow,sizeof(int),1,f);
     printf("%d ",nrow);
     fread(&ncol,sizeof(int),1,f);
     printf("%d ",ncol);
-    fread(&type,sizeof(int),1,f);
-    printf("%d\n",type);
+    fread(&nelements,sizeof(int),1,f);
+    printf("%d\n",nelements);
     
-    A = (int**)malloc(nrow*sizeof(int*));
+    
     if(type ==0){
         //normal
+        A = (int**)malloc(nrow*sizeof(int*));
         for(int c=0;c<nrow;c++){
             A[c] = (int*)malloc(ncol*sizeof(int));
             fread(A[c],sizeof(int),ncol,f);
@@ -44,16 +56,19 @@ int main(int argc, char *argv[]){
     }
     else{
         //sparse
-        for(int c=0;c<nrow;c++){
-            fread(&i,sizeof(int),1,f);
-            printf("%d ",i);
-            //this is not storing i and it should! -> fixed in the actual read
-            A[c] = (int*)malloc(i*sizeof(int));
-            fread(A[c],sizeof(int),i,f);
-            for(int c2=0;c2<i;c2++)
-                printf("%d ",A[c][c2]);
+        A = (int**)malloc(2*sizeof(int*));
+        A[0] = (int*)malloc(nelements*sizeof(int));
+        A[1] =(int*)malloc(nrow+1*sizeof(int));
+
+        fread(A[0],sizeof(int),nelements,f);
+        fread(A[1],sizeof(int),nrow+1,f);
+        
+        for(int r=0;r<nrow;r++){
+            for(int j=A[1][r]; j<A[1][r+1] ;j++)
+                printf("%d ",A[0][j]);
             printf("\n");
         }
+        
     }
 
 

@@ -19,10 +19,10 @@ void encode(int *message, pchk generator, int *codeword)
     else{
         //sparse
         for(int r=0;r<generator.n_row;r++){
-            for(int c=0;c<generator.A[r][0];c++){
-                codeword[generator.A[r][c+1]] ^= message[r];
-            }
+            for (int j = generator.A[1][r]; j <  generator.A[1][r+1]; j++)
+                codeword[generator.A[0][j]] ^= message[r];
         }
+            
     }
 
 }

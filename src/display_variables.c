@@ -46,20 +46,19 @@ void print_parity_check(pchk mat){
         //sparse
         for (int i = 0; i < mat.n_row; i++){
             printf("[ ");
-            for (int j = 0; j < mat.A[i][0]; j++)
-                printf("%d ", mat.A[i][j+1]);    
+            for (int j = mat.A[1][i]; j < mat.A[1][i+1]; j++)
+                printf("%d ", mat.A[0][j]);
             printf("]\n");
         }
-
     }
 }
 
 //function to print sparse floating point matrices
-void print_sparse_float(pchk index,float **mat){
+void print_sparse_float(pchk index,float *mat){
     for (int i = 0; i < index.n_row; i++){
         printf("[ ");
-        for (int j = 0; j < index.A[i][0]; j++)
-        printf("%f ", mat[i][j]);    
+        for (int j = index.A[1][i]; j < index.A[1][i+1]; j++)
+            printf("%f ", mat[j]);    
         printf("]\n");
     }   
 }

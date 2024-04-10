@@ -6,8 +6,8 @@ int scheck_codeword(pchk H, int *codeword){
     int check = 0;
 
     for (int i=0;i<H.n_row;i++){
-        for (int j=0;j<H.A[i][0];j++)
-            check ^= codeword[H.A[i][j+1]];
+        for (int j=H.A[1][i];j<H.A[1][i+1];j++)
+            check ^= codeword[H.A[0][j]];
         if(check != 0)
             return 0;
     }
@@ -47,49 +47,50 @@ void sa_priori_probabilities(int mode,int codeword_len, int *codeword, float** p
 }
 
 //Function to compute extrinsic probabilities matrix (E)
-void scompute_extrinsic(pchk H,pchk TH,float ** E, float **M, float *LE){
+void scompute_extrinsic(pchk H,pchk TH,float * E, float *M, float *LE){
     float p;
     int mj;
 
     //compute new LE
     for (int i=0;i<TH.n_row;i++){
         LE[i]=1;
-        for (int j=0; j<TH.A[i][0]; j++)
-            LE[i] *= tanh(M[i][j]/2);
+        for (int j=TH.A[1][i]; j<TH.A[1][i+1]; j++)
+            LE[i] *= tanh(M[j]/2);
     }
 
     //Update E
     for (int j=0;j<H.n_row;j++){
-        for (int i=0;i<H.A[j][0];i++){
+        for (int i=H.A[1][j];i<H.A[1][j+1];i++){
             //finding the real index where Mi,j is stored
-            for(mj=0;TH.A[ H.A[j][i+1] ][mj+1] != j;mj++);
-            p = LE[j] / M[i][mj];
-            E[j][i] = log((1+p)/(1-p));
+            for(mj=TH.A[1][ H.A[0][j] ];TH.A[0][mj] != j;mj++);
+
+            p = LE[j] / M[mj];
+            E[j] = log((1+p)/(1-p));
         }
     }
 }
 
 //Function to Update matrix M
-void sUpdate_M(pchk H,pchk TH,float **M,float *L,float **E){
+void sUpdate_M(pchk H,pchk TH,float *M,float *L,float *E){
     int mi;
     
     for (int i=0;i<TH.n_row;i++){
-        for (int j=0;j<TH.A[i][0];j++){
+        for (int j=TH.A[1][i+1];j<TH.A[1][i+1];j++){
             //finding the real index where Ei,j is stored
-            for(mi=0;H.A[ TH.A[i][j+1] ][mi]!=i;mi++);
+            for(mi=H.A[1][ TH.A[0][j] ]; H.A[0][mi]!=i; mi++);
 
-            M[i][j] = L[i] - E[j][mi];
+            M[j] = L[i] - E[mi];
         }
     }
 }
 
 //Function to get new best guess as well has probabilities
-void sGet_state(pchk H, float *L, int *z, float *r, float **E){
+void sGet_state(pchk H, float *L, int *z, float *r, float *E){
 
     for (int j=0;j<H.n_row;j++){
         L[j] = r[j];
-        for (int i=0;i<H.A[j][0];i++)
-            L[j] += E[j][i];
+        for (int i=H.A[1][j];i<H.A[1][j+1];i++)
+            L[j] += E[i];
         z[j] = (L[j] < 0) ? 1 : 0;
     }
 }
@@ -97,7 +98,7 @@ void sGet_state(pchk H, float *L, int *z, float *r, float **E){
 // Function to decode the message
 void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     float *r;
-    float **M,**E;
+    float *M,*E; //these are matrices in csr
     float *L,*LE;
     int try_n = 0;
     
@@ -108,25 +109,20 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
         return ;
     }
     if(scheck_codeword(H, recv_codeword) == 1){
+#ifdef DEBUG
+        printf("valid codeword no errors detected\n");
+#endif
         memcpy(codeword_decoded, recv_codeword, H.n_col * sizeof(int));
         return ;
     }
     // Initialize variables
-    //H is the index for E and TH is the index for M
-    L = (float *)calloc(H.n_row , sizeof(float*)); //colapsed E + prob
-    LE = (float *)calloc(TH.n_row , sizeof(float*)); //colapsed product of M
+    
+    L  = (float *)calloc(H.n_row  , sizeof(float)); //colapsed E + prob
+    LE = (float *)calloc(TH.n_row , sizeof(float)); //colapsed product of M
+    M  = (float *)malloc(H.type   * sizeof(float)); //the index for M is TH
+    E  = (float *)malloc(H.type   * sizeof(float)); //the index for E is H
 
-    M = (float**)malloc(TH.n_row * sizeof(float*));
-    for(int i=0; i<TH.n_row ; i++){
-        if(TH.A[i][0] != 0)
-            M[i]=(float *)malloc(TH.A[i][0] * sizeof(float*));
-    }
-
-    E = (float**)malloc(H.n_col * sizeof(float*));
-    for(int j=0; j<H.n_row ; j++){
-        if(H.A[j][0] != 0)
-            E[j]=(float *)malloc(H.A[j][0] * sizeof(float*));
-    }
+    
     
 #ifdef DEBUG
     printf("---------------------INITIALIZATIONS----------------------\n");
@@ -135,9 +131,10 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     print_vector_int(recv_codeword, H.n_col);
     printf("\n");
 #endif
-
+    
     //Compute LLR a priori probabilities (r)
-    a_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &r);
+    //this is the same has the "normal" decoding
+    sa_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &r);
 
 #ifdef DEBUG
     printf("Probabilities: ");
@@ -146,21 +143,22 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     
     // Initialize matrix M
     for (int i = 0; i < TH.n_row; i++){
-        for (int j = 0; j < TH.A[i][0]; j++)
-            M[i][j] = r[i];
+        for (int j=TH.A[1][i];j<TH.A[1][i+1];j++)
+            M[j] = r[i];
     }
+
+    
 #ifdef DEBUG
     printf("Matrix M: \n");
     print_sparse_float(TH,M);
 #endif
-
     while (try_n < MAX_ITERATIONS){
         try_n++;
 
 #ifdef DEBUG
         printf("---------------------ITERATION %d----------------------\n", try_n);
 #endif
-
+        
         // Compute extrinsic probabilities matrix (E)
         scompute_extrinsic(H,TH,E,M,LE);
 #ifdef DEBUG
@@ -187,10 +185,7 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     if(try_n == MAX_ITERATIONS)
         printf("Not completed after %d iterations\n", try_n);  
 #endif
-    for (int i = 0; i < H.n_row; i++){
-        free(M[i]);
-        free(E[i]);
-    }
+    
     free(M);
     free(E);
     free(r);
