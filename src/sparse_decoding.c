@@ -49,36 +49,31 @@ void sa_priori_probabilities(int mode,int codeword_len, int *codeword, float** p
 //Function to compute extrinsic probabilities matrix (E)
 void scompute_extrinsic(pchk H,pchk TH,float *M, float *E,float *LE, float *L,float *r, int *z){
     float p;
-    int mi;
 
-    for (int i=0;i<TH.n_row;i++){
+    for(int i=0;i<H.n_col;i++)
         L[i] = r[i];
-        for (int j=TH.A[1][i];j<TH.A[1][i+1];j++){
-            //find the real index where Mi,j is stored
-            for(mi= H.A[1][ TH.A[0][j] ]; H.A[0][mi] !=i; mi++);
 
-            p = LE[ TH.A[0][j] ] / M[mi];
-            E[j] = log((1+p)/(1-p));
+    for (int j=0;j<H.n_row;j++){
+        for (int i=H.A[1][j];i<H.A[1][j+1];i++){
 
-            L[i] += E[j];
+            p = LE[j] / M[i];
+            E[i] = log((1+p)/(1-p));
+
+            L[ H.A[0][i]  ] += E[j];
         }
-        z[i] = (L[i] < 0) ? 1 : 0;
     }
+
+    for(int i=0;i<H.n_col;i++)
+        z[i] = (L[i] < 0) ? 1 : 0;
     
 }
 
 //Function to Update matrix M
 void sUpdate_M(pchk H,pchk TH,float *M, float *E,float *LE, float *L){
-    int mj;
-
     for (int j=0;j<H.n_row;j++){
         LE[j]=1;
         for (int i=H.A[1][j];i<H.A[1][j+1];i++){
-            //finding the real index where Ei,j is stored
-            for(mj=TH.A[1][  H.A[0][i] ];TH.A[0][mj] !=j; mj++);
-            
-
-            M[i] = L[ H.A[0][i] ] - E[mj];
+            M[i] = L[ H.A[0][i] ] - E[i];
 
             LE[j] *= tanh(M[i]/2);
         }
@@ -119,8 +114,8 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     }
     // Initialize variables
     
-    L  = (float *)calloc(H.n_col  , sizeof(float)); //colapsed E + prob
-    LE = (float *)calloc(H.n_row , sizeof(float)); //colapsed product of M
+    L  = (float *)calloc(H.n_col  , sizeof(float)); //colapsed E + prob column wise
+    LE = (float *)calloc(H.n_row , sizeof(float)); //colapsed product of M rowwise
     M  = (float *)malloc(H.type   * sizeof(float)); //the index for M is H
     E  = (float *)malloc(H.type   * sizeof(float)); //the index for E is TH
 
@@ -161,7 +156,7 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
         scompute_extrinsic(H,TH,M,E,LE,L,r,codeword_decoded);
 #ifdef DEBUG
         printf("Extrinsic probabilities: \n");
-        print_sparse_float(TH,E);
+        print_sparse_float(H,E);
 
         printf("Final L: \n");
         print_vector_float(L, H.n_col);
