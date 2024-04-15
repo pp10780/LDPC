@@ -59,7 +59,7 @@ void scompute_extrinsic(pchk H,pchk TH,float *M, float *E,float *LE, float *L,fl
             p = LE[j] / M[i];
             E[i] = log((1+p)/(1-p));
 
-            L[ H.A[0][i]  ] += E[j];
+            L[ H.A[0][i]  ] += E[i];
         }
     }
 
@@ -83,11 +83,11 @@ void sUpdate_M(pchk H,pchk TH,float *M, float *E,float *LE, float *L){
 //function to innitialize the matrix M (and it's colapsed rows LE)
 void Mi(pchk H, float *M, float *LE, float *r){
 
-    for (int i=0; i < H.n_row; i++){
-        LE[i]=1;
-        for (int j=H.A[1][i];j<H.A[1][i+1];j++){
-            M[j] = r[i];
-            LE[i] *= tanh(M[i]/2);
+    for (int j=0; j < H.n_row; j++){
+        LE[j]=1;
+        for (int i=H.A[1][j];i<H.A[1][j+1];i++){
+            M[i] = r[ H.A[0][i] ];
+            LE[j] *= tanh(M[i]/2);
         }
     }
 }
