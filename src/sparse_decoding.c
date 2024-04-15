@@ -47,7 +47,7 @@ void sa_priori_probabilities(int mode,int codeword_len, int *codeword, float** p
 }
 
 //Function to compute extrinsic probabilities matrix (E)
-void scompute_extrinsic(pchk H,pchk TH,float *M, float *E,float *LE, float *L,float *r, int *z){
+void scompute_extrinsic(pchk H,float *M, float *E,float *LE, float *L,float *r, int *z){
     float p;
 
     for(int i=0;i<H.n_col;i++)
@@ -56,7 +56,7 @@ void scompute_extrinsic(pchk H,pchk TH,float *M, float *E,float *LE, float *L,fl
     for (int j=0;j<H.n_row;j++){
         for (int i=H.A[1][j];i<H.A[1][j+1];i++){
 
-            p = LE[j] / M[i];
+            p = LE[j] / tanh(M[i]/2);
             E[i] = log((1+p)/(1-p));
 
             L[ H.A[0][i]  ] += E[i];
@@ -69,7 +69,7 @@ void scompute_extrinsic(pchk H,pchk TH,float *M, float *E,float *LE, float *L,fl
 }
 
 //Function to Update matrix M
-void sUpdate_M(pchk H,pchk TH,float *M, float *E,float *LE, float *L){
+void sUpdate_M(pchk H,float *M, float *E,float *LE, float *L){
     for (int j=0;j<H.n_row;j++){
         LE[j]=1;
         for (int i=H.A[1][j];i<H.A[1][j+1];i++){
@@ -93,7 +93,7 @@ void Mi(pchk H, float *M, float *LE, float *r){
 }
 
 // Function to decode the message
-void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
+void sdecode(pchk H, int *recv_codeword, int *codeword_decoded){
     float *r;
     float *M,*E; //these are matrices in csr
     float *L,*LE;
@@ -142,8 +142,10 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
     Mi(H,M,LE,r);
     
 #ifdef DEBUG
-    printf("Matrix M: \n");
+    printf("Mi: \n");
     print_sparse_float(H,M);
+    printf("LE: \n");
+    print_vector_float(LE, H.n_row);
 #endif
     while (try_n < MAX_ITERATIONS){
         try_n++;
@@ -153,7 +155,7 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
 #endif
         
         // Compute extrinsic probabilities matrix (E) it's compressed vector L and the best guess z
-        scompute_extrinsic(H,TH,M,E,LE,L,r,codeword_decoded);
+        scompute_extrinsic(H,M,E,LE,L,r,codeword_decoded);
 #ifdef DEBUG
         printf("Extrinsic probabilities: \n");
         print_sparse_float(H,E);
@@ -169,7 +171,15 @@ void sdecode(pchk H,pchk TH, int *recv_codeword, int *codeword_decoded){
             break;
         }
         // Update matrix M
-        sUpdate_M(H,TH,M,E,LE,L);
+        sUpdate_M(H,M,E,LE,L);
+#ifdef DEBUG
+        printf("M: \n");
+        print_sparse_float(H,E);
+
+        printf("LE: \n");
+        print_vector_float(LE, H.n_row);
+#endif
+
     }
 #ifdef DEBUG
     if(try_n == MAX_ITERATIONS)

@@ -150,7 +150,7 @@ printf("\n");
         print_parity_check(TH);
         printf("\n");
 #endif
-        sdecode(H,TH,codeword_encoded,codeword_decoded);
+        sdecode(H,codeword_encoded,codeword_decoded);
         free(TH.A[0]);
         free(TH.A[1]);
         free(TH.A);
