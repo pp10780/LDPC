@@ -16,7 +16,7 @@ __global__ void GPU_apriori_probabilities(int n_col, float llr_i , float *r, flo
 }
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
-__global__ void GPU_row_wise(int n_row, int n_col, float *M, float* E){
+__global__ void GPU_row_wise(int n_row, int n_col,int *H, float *M, float* E){
 
     float LE = 1; //row value used to compute E
     int j = (blockIdx.x * blockDim.x + threadIdx.x);
@@ -27,19 +27,23 @@ __global__ void GPU_row_wise(int n_row, int n_col, float *M, float* E){
 
     //do full row for M [first recursion]
     for(int i = 0 ; i<n_col; i++){
-        float M_val = L[i] - E[row_start + i];
+        if(H[row_start + i]!=-1){
+            float M_val = L[i] - E[row_start + i];
 
-        //store row value
-        LE * = tanh(M_val/2);
-        //writing result in global memory
-        M[row_start + i] = M_val;
+            //store row value
+            LE * = tanh(M_val/2);
+            //writing result in global memory
+            M[row_start + i] = M_val;
+        }
     }
 
     //do full row for E [second recursion]
     for(int i = 0 ; i<n_col; i++){
-        //exclude corresponding element from row -> this is going back to global memory which min sum doesn't have to (BAD!)
-        float p = LE/M[row_start + i] ;
-        E[row_start + i] = log((1+p)/(1-p));
+        if(H[row_start + i]!=-1){
+            //exclude corresponding element from row -> this is going back to global memory which min sum doesn't have to (BAD!)
+            float p = LE/M[row_start + i] ;
+            E[row_start + i] = log((1+p)/(1-p));
+        }
     }
 }
 
@@ -53,7 +57,10 @@ __global__ void GPU_column_wise(int n_row, int n_col, float* E,float *L, int *z)
     L_val=r[i];
     //go through E column wise
     for(int j=0; j<n_row; j++){
-        L_val+=E[j*n_col + i];
+        if (H[j*n_col + i]!=-1){
+            L_val+=E[j*n_col + i];
+        }
+        
     }
     L[i] = L_val;
     z[i] = (L_val < 0) ? 1 : 0;;
@@ -95,10 +102,10 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded)
     for (int try_n = 0; try_n<MAX_ITERATION; try_n++){
 
         //kernel 1:
-        GPU_row_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dM, dE);
+        GPU_row_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dH, dM, dE);
         cudaCheckError(cudaDeviceSynchronize());
         //kernel 2:
-        GPU_column_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dE, dL, dz);
+        GPU_column_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dH, dE, dL, dz);
 
         //(add later) kernel 3
         //if done()
