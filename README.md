@@ -97,16 +97,8 @@ depois pega na terceira linha e da xor das duas
 
 -implementar um sistema de ficheiros melhor que txt
     >fazer um programa para escrever novas matrizes (vou usar o test entretanto)
--implementar matrizes esparsas
-    >Usar compressed sparse row (csr)
-        -mudar struct pchk type -> n_elements
-        -mudar sparse decoding 
-        -L and LE calculation in the E and M calculation 
-    >juntar os dois ficheiros decoding se for possível/útil
+-limpeza de código
+    >juntar os dois ficheiros de decoding (sparse e normal) se for possível/útil
         -neste momento parece não ser útil juntar
--libertar memoria no final que não estou a fazer neste momento
-    >função para dar free a phck
-        >H
-        >G
-        >TH
+    >por Mi do normal decoding numa função à parte
 

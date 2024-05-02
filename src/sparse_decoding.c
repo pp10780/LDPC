@@ -93,7 +93,7 @@ void Mi(pchk H, float *M, float *LE, float *r){
 }
 
 // Function to decode the message
-void sdecode(pchk H, int *recv_codeword, int *codeword_decoded){
+void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     float *r;
     float *M,*E; //these are matrices in csr
     float *L,*LE;

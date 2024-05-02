@@ -164,6 +164,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 #endif
 
     // Initialize matrix M
+    //TODO: put this in a seperate function
     for (int m = 0; m < H.n_row; m++)
     {
         for (int n = 0; n < H.n_col; n++)

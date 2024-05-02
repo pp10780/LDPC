@@ -94,6 +94,7 @@ void possible_codeword_list(int ***list)
 }
 
 // Function to check all possible codewords
+/*
 void check_possible_codewords(pchk H)
 {
     int *codeword_decoded;
@@ -135,3 +136,4 @@ void check_possible_codewords(pchk H)
     }
     free(possible_codeword_l);
 }
+*/
