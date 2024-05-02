@@ -3,8 +3,11 @@
 #include <string.h>
 
 int main(int argc, char *argv[]){
-    int nrow=3,ncol=6,type=1,nelements=10;
+    FILE *f;
+    char filename[100] = "matrices/G1";
 
+    int nrow=3,ncol=6,type=1,nelements=10;
+    /*
     //H
     //int E[10] = {0,1,3,1,2,4,0,1,2,5};
     //int r[4]  = {0,3,6,10};
@@ -12,9 +15,6 @@ int main(int argc, char *argv[]){
     //G
     int E[10] = {0,3,5,1,3,4,5,2,4,5};
     int r[4]  = {0,3,7,10};
-
-    FILE *f;
-    char filename[100] = "matrices/G1.csr";
 
     f = fopen (filename,"w+");
 
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
     fwrite(r,sizeof(int),4,f);
     
     fclose(f);
-
+    */
     //--------------------------------------------------------------------------------
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     //--------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]){
     printf("%d\n",nelements);
     
     
-    if(type ==0){
+    if(nelements ==0){
         //normal
         A = (int**)malloc(nrow*sizeof(int*));
         for(int c=0;c<nrow;c++){
