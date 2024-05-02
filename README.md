@@ -95,10 +95,33 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
+-implementar GPU
+    >memory init:
+        -ver como escrever na memória "outra vez"
+        -ver se vale a pena escrever m na memoria ou só escrever r
+        -H
+        -E
+        -M
+        -L
+        -z
+        -r
+        -m?
+    >kernel 0 init:
+        -get r from m
+        -init L to 0
+    >kernel 1 M + E:
+        -compute M
+        -compute LE
+        -compute E
+    >kernel 2 L:
+        -compute L
+        -compute z
+    >kernel 3 early termination: (do this later has no resutls really exist so far)
+        -get flag from H and z
+
 -implementar um sistema de ficheiros melhor que txt
     >fazer um programa para escrever novas matrizes (vou usar o test entretanto)
 -limpeza de código
     >juntar os dois ficheiros de decoding (sparse e normal) se for possível/útil
         -neste momento parece não ser útil juntar
-    >por Mi do normal decoding numa função à parte
 
