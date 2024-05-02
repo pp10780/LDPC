@@ -55,11 +55,26 @@ void a_priori_probabilities(int mode,int codeword_len, int* codeword, float** pr
     }
 }
 
+//Function to compute initial state of M after obtaining a priori probabilities
+void Initial_state(pchk H, float** M, float* probabilities){
+    for (int m = 0; m < H.n_row; m++)
+    {
+        for (int n = 0; n < H.n_col; n++)
+        {
+            if (H.A[m][n] == 0)
+                M[m][n] = 0;
+            else
+                M[m][n] = probabilities[n];
+        }
+    }
+    return;
+}
+
 // Function to compute the product of the other probabilities
-float product(float** M, int m, int n)
+float product(float** M, int m, int n,int len)
 {
     float product = 1;
-    for (int i = 0; i < CODEWORD_LEN; i++)
+    for (int i = 0; i < len; i++)
     {
         if (i != n && M[m][i] != 0)
         {
@@ -78,7 +93,7 @@ void compute_extrinsic(pchk H,float ** extrinsic_probabilities, float **M){
             if (H.A[m][n] == 0){
                 extrinsic_probabilities[m][n] = 0;
             } else {
-                product_value = product(M, m, n);
+                product_value = product(M, m, n,H.n_col);
                 extrinsic_probabilities[m][n] = log((1+product_value)/(1-product_value));
             }
         }
@@ -164,17 +179,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 #endif
 
     // Initialize matrix M
-    //TODO: put this in a seperate function
-    for (int m = 0; m < H.n_row; m++)
-    {
-        for (int n = 0; n < H.n_col; n++)
-        {
-            if (H.A[m][n] == 0)
-                M[m][n] = 0;
-            else
-                M[m][n] = probabilities[n];
-        }
-    }
+
 #ifdef DEBUG
     printf("Matrix M: \n");
     print_matrix_float(M, H.n_row, H.n_col);
