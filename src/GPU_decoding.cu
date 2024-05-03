@@ -95,8 +95,7 @@ __global__ void early_termination(int n_row, int n_col, int *H, int *z, int d_ch
 */
 
 // Function to decode the message
-void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded)
-{
+void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     //initialize device memory
     //decoding matrix
     float *dH;

@@ -7,6 +7,9 @@
 
 #include "sparse_decoding.h"
 
+//make this into a header file
+#include "GPU_decoding.cu"
+
 //this is to go in the seperate file
 #include <string.h>
 
@@ -140,7 +143,8 @@ int main(int argc, char *argv[])
 
     print_vector_int(codeword_encoded, G.n_col);
     if(H.type == 0){
-        decode(H, codeword_encoded, codeword_decoded);
+        //decode(H, codeword_encoded, codeword_decoded);
+        GPU_decode(H, codeword_encoded, codeword_decoded);
     }
     else{
         Transpose_pchk(&TH,H);
