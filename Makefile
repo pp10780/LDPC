@@ -7,7 +7,7 @@ SOURCE  = $(addprefix $(SRCDIR)/, main.c decoding.c encoding.c display_variables
 HEADER  = $(addprefix $(SRCDIR)/, decoding.h encoding.h defs.h display_variables.h storage.h sparse_decoding.h GPU_decoding.h) 
 OUT     = $(BINDIR)/ldpc
 CC      = nvcc
-FLAGS   = -g -c -Wall
+FLAGS   = 
 MATH    = -lm
 
 all: $(OUT)

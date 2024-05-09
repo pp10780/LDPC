@@ -96,7 +96,11 @@ depois pega na terceira linha e da xor das duas
 ## TODO 
 
 -implementar GPU
-    >memory init:
+    > get make file correctly
+        -make "hello world" on GPU
+        -checkout previous implementations
+        -make sure header files are working has intended
+    >memory init: test this
         -ver como escrever na memória "outra vez"
         -ver se vale a pena escrever m na memoria ou só escrever r
         -H
@@ -106,14 +110,14 @@ depois pega na terceira linha e da xor das duas
         -z
         -r
         -m?
-    >kernel 0 init:
+    >kernel 0 init: test this
         -get r from m
         -init L to 0
-    >kernel 1 M + E:
+    >kernel 1 M + E: test this
         -compute M
         -compute LE
         -compute E
-    >kernel 2 L:
+    >kernel 2 L: test this
         -compute L
         -compute z
     >kernel 3 early termination: (do this later has no resutls really exist so far)
