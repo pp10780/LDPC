@@ -1,6 +1,7 @@
 #include "decoding.h"
 
 //kernel 0: innit -> compute r and Li from m
+/*
 __global__ void GPU_apriori_probabilities(int n_col, float llr_i , float *r, float *L){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -14,7 +15,9 @@ __global__ void GPU_apriori_probabilities(int n_col, float llr_i , float *r, flo
     r[index] = r_val;
     L[index] = r_val;
 }
+*/
 
+/*
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
 __global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E){
 
@@ -46,8 +49,10 @@ __global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E){
         }
     }
 }
+*/
 
 //kernel 2: column wise -> compute L and z from E
+/*
 __global__ void GPU_column_wise(int n_row, int n_col, float* E,float *L, int *z){
     int i = (blockIdx.x * blockDim.x + threadIdx.x);
     float L_val;//only write to global memory in the end
@@ -65,6 +70,7 @@ __global__ void GPU_column_wise(int n_row, int n_col, float* E,float *L, int *z)
     L[i] = L_val;
     z[i] = (L_val < 0) ? 1 : 0;;
 }
+*/
 
 //this is very inneficient has of right now has it is not the focus and I didn't understant how they're doing it in the other one
 //kernel 3: early termination -> see if word is a success
@@ -123,7 +129,8 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     //kernel 0:
     GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE) , dr, dL);
     cudaCheckError(cudaDeviceSynchronize());
-
+    
+    /*
     for (int try_n = 0; try_n<MAX_ITERATION; try_n++){
 
         //kernel 1:
@@ -138,6 +145,7 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
             //break;
         cudaCheckError(cudaDeviceSynchronize());
     }
+    */
 
     return ;
 }
