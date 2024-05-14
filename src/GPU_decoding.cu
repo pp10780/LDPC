@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "decoding.h"
+#include "defs.h"
 
 //kernel 0: innit -> compute r and Li from m
 __global__ void GPU_apriori_probabilities(int n_col, float llr_i , float *r, float *L){
