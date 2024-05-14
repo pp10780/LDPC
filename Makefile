@@ -19,7 +19,7 @@ $(OUT): $(OBJS) $(CUOBJS)
 	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADER)
-	$(CC) $(FLAGS) $< -o $@
+	$(NVCC) $(CUFLAGS) $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cu $(HEADER)
 	$(NVCC) $(CUFLAGS) $< -o $@
