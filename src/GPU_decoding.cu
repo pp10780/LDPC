@@ -1,10 +1,5 @@
 #include <stdio.h>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-
-#include <driver_functions.h>
-
 #include "decoding.h"
 
 //kernel 0: innit -> compute r and Li from m
