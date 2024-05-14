@@ -6,17 +6,23 @@ OBJS    = $(addprefix $(OBJDIR)/, main.o decoding.o encoding.o display_variables
 SOURCE  = $(addprefix $(SRCDIR)/, main.c decoding.c encoding.c display_variables.c storage.c sparse_decoding.c GPU_decoding.cu)
 HEADER  = $(addprefix $(SRCDIR)/, decoding.h encoding.h defs.h display_variables.h storage.h sparse_decoding.h GPU_decoding.h) 
 OUT     = $(BINDIR)/ldpc
-CC      = nvcc
-FLAGS   = -O3 -m64 --gpu-architecture
+
+CC      = gcc
+FLAGS	= -g -c -Wall
+NVCC 	= nvcc
+CUFLAGS= -O3 -m64 --gpu-architecture
 MATH    = -lm
 
 all: $(OUT)
 
-$(OUT): $(OBJS)
-	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
+$(OUT): $(OBJS) $(CUOBJS)
+	@echo $(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADER)
-	$(CC) $(FLAGS) $< -o $@
+	@echo $(CC) $(FLAGS) $< -o $@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cu $(HEADER)
+	@echo $(NVCC) $(CUFLAGS) $< -o $@
 
 clean:
 	rm -f $(OBJS) $(OUT)
