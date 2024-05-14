@@ -1,5 +1,6 @@
 #ifndef GPU_LDPC
 #define GPU_LDPC
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
