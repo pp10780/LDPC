@@ -8,9 +8,9 @@ HEADER  = $(addprefix $(SRCDIR)/, decoding.h encoding.h defs.h display_variables
 OUT     = $(BINDIR)/ldpc
 
 CC      = gcc
-FLAGS	= -g -c -Wall
+FLAGS	= -std=c99 -g -c -Wall
 NVCC 	= nvcc
-CUFLAGS	= -std=c99 -O3 -m64 --gpu-architecture
+CUFLAGS	= -O3 -m64 --gpu-architecture
 MATH    = -lm
 
 all: $(OUT)
