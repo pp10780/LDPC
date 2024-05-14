@@ -16,13 +16,13 @@ MATH    = -lm
 all: $(OUT)
 
 $(OUT): $(OBJS) $(CUOBJS)
-	@echo $(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
+	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADER)
-	@echo $(CC) $(FLAGS) $< -o $@
+	$(CC) $(FLAGS) $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cu $(HEADER)
-	@echo $(NVCC) $(CUFLAGS) $< -o $@
+	$(NVCC) $(CUFLAGS) $< -o $@
 
 clean:
 	rm -f $(OBJS) $(OUT)
