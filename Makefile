@@ -10,7 +10,7 @@ OUT     = $(BINDIR)/ldpc
 CC      = gcc
 FLAGS	= -std=c99 -g -c -Wall
 NVCC 	= nvcc
-CUFLAGS	= -O3 -m64 --gpu-architecture
+CUFLAGS	= -O3 -m64
 MATH    = -lm
 
 all: $(OUT)
