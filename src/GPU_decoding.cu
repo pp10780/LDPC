@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "decoding.h"
+#include "GPU_decoding.h"
 #include "defs.h"
 
 //kernel 0: innit -> compute r and Li from m
