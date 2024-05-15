@@ -152,8 +152,3 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 
     return ;
 }
-
-int main(){
-    printf("This is suposed to be used with other main yet requires a main!\n");
-    return -1;
-}
