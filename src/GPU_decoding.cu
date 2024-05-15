@@ -125,20 +125,22 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     cudaMemcpy(dm, recv_codeword, H.n_col * sizeof(int), cudaMemcpyHostToDevice);
     //not very confident in this thing bellow
     for(int i=0;i< H.n_row;i++)
-        cudaMemcpy( &(dH[i*H.n_col]), H[i], H.n_col * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy( &(dH[i*H.n_col]), &(H[i]), H.n_col * sizeof(int), cudaMemcpyHostToDevice);
 
     //kernel 0:
-    GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, dr, dL);
+    //TOFO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
+    GPU_apriori_probabilities<<<1, 10>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
+    //GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
     cudaCheckError(cudaDeviceSynchronize());
 
     /*
     for (int try_n = 0; try_n<MAX_ITERATION; try_n++){
 
         //kernel 1:
-        GPU_row_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dH, dM, dE);
+        GPU_row_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, H, M, E);
         cudaCheckError(cudaDeviceSynchronize());
         //kernel 2:
-        GPU_column_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, dH, dE, dL, dz);
+        GPU_column_wise<<<blocks, THREADS_PER_BLOCK>>>(H.n_row, H.n_col, H, E, L, z);
 
         //(add later) kernel 3
         //early_termination(n_row, n_col, dH, dz, d_check);

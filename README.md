@@ -96,10 +96,9 @@ depois pega na terceira linha e da xor das duas
 ## TODO 
 
 -implementar GPU
-    > get make file correctly
-        -make "hello world" on GPU
-        -checkout previous implementations
-        -make sure header files are working has intended
+    >calculate number of threads and thread blocks
+        -define thread blocks in defs
+        -compute number of blocks required
     >memory init: test this
         -ver como escrever na memória "outra vez"
         -ver se vale a pena escrever m na memoria ou só escrever r
@@ -129,3 +128,23 @@ depois pega na terceira linha e da xor das duas
     >juntar os dois ficheiros de decoding (sparse e normal) se for possível/útil
         -neste momento parece não ser útil juntar
 
+
+erro corrente:
+nvcc -O3 -m64 src/GPU_decoding.cu -o obj/GPU_decoding.o
+src/GPU_decoding.cu(14): error: identifier "m" is undefined                                     ->solved
+
+src/GPU_decoding.cu(128): error: no operator "[]" matches these operands                        ->solved
+            operand types are: pchk [ int ]
+
+src/GPU_decoding.cu(131): error: identifier "blocks" is undefined                               ->temporary solved
+
+src/GPU_decoding.cu(131): error: identifier "THREADS_PER_BLOCK" is undefined                    ->temporary solved
+
+src/GPU_decoding.cu(131): error: identifier "dr" is undefined                                   ->solved
+
+src/GPU_decoding.cu(131): error: identifier "dL" is undefined                                   ->solved
+
+src/GPU_decoding.cu(132): error: identifier "cudaCheckError" is undefined                       ->?
+
+7 errors detected in the compilation of "/tmp/tmpxft_000081bf_00000000-8_GPU_decoding.cpp1.ii".
+make: *** [obj/GPU_decoding.o] Error 1

@@ -21,5 +21,8 @@
         int **A;
     } pchk;
 
+    //TODO: number of threads per block
+    //#define THREADS_PER_BLOCK ?
+
     #define DEBUG
 #endif
