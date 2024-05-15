@@ -8,7 +8,7 @@
 #include "sparse_decoding.h"
 
 //make this into a header file
-#include "GPU_decoding.h"
+#include "GPU_decoding.cuh"
 
 //this is to go in the seperate file
 #include <string.h>
