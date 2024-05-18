@@ -95,32 +95,18 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
+-problemas que tenho com o algoritmo
+    >p é o numero de parity checks 
+    >este metodo consegue corrigir n erros se eles estiverem na "parte de cima" da mesagem, porque ele consegue detetar p erros
+    >se m > p a mensagem não fica toda coberta,logo  a forma como o algoritmo está agora montado não funciona !
+
+    >ao mesmo tempo se só for necessário descobrir x erros (em que x são os erros esperados com o error rate) então o numero de erros possíveis é mais pequeno
+    >assim o codewords de erro fica limitado, se o numero dessas codewords consegue ser indexado pelo sindrome 
+    >e se todas essas error codewords tiverem sindromes diferentes 
+    >isto funciona se um pouco diferente em que "D" tem mesmo que ser feito apriori 
+   
+
 -implementar GPU
-    >calculate number of threads and thread blocks
-        -define thread blocks in defs
-        -compute number of blocks required
-    >memory init: test this
-        -ver como escrever na memória "outra vez"
-        -ver se vale a pena escrever m na memoria ou só escrever r
-        -H
-        -E
-        -M
-        -L
-        -z
-        -r
-        -m?
-    >kernel 0 init: test this
-        -get r from m
-        -init L to 0
-    >kernel 1 M + E: test this
-        -compute M
-        -compute LE
-        -compute E
-    >kernel 2 L: test this
-        -compute L
-        -compute z
-    >kernel 3 early termination: (do this later has no resutls really exist so far)
-        -get flag from H and z
 
 -implementar um sistema de ficheiros melhor que txt
     >fazer um programa para escrever novas matrizes (vou usar o test entretanto)

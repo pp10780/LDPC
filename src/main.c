@@ -4,24 +4,12 @@
 #include "display_variables.h"
 #include "defs.h"
 #include "storage.h"
+#include "simple_decoding.h"
 
 #include "sparse_decoding.h"
 
 //this is to go in the seperate file
 #include <string.h>
-
-void BSC_noise(int *codeword, float p)
-{
-    for (int i = 0; i < CODEWORD_LEN; i++)
-    {
-        float r = (float)rand() / RAND_MAX;
-        printf("r = %f\n", r);
-        if (r < p)
-        {
-            codeword[i] = !codeword[i];
-        }
-    }
-}
 
 void *Transpose_pchk(pchk *Tmat,pchk mat){
     int *row_count;
@@ -109,7 +97,7 @@ int main(int argc, char *argv[])
     }
 
     //get parity check matrices from file
-    pchk H,G,TH;
+    pchk H,G;
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
 
@@ -129,32 +117,28 @@ int main(int argc, char *argv[])
 #endif
     
     int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
-
     int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
 
+    //encoding message
     encode((int *)message, G, codeword_encoded);
-    
     print_vector_int(codeword_encoded, G.n_col);
 
-    add_error(codeword_encoded,G.n_col,1);
-
+    //transmiting message
+    //add_error(codeword_encoded,G.n_col,0);
+    int e[6]={1,0,1,0,0,0};
+    bitwise_vectors(codeword_encoded,codeword_encoded,(int *)e, G.n_col);
     print_vector_int(codeword_encoded, G.n_col);
+
+    //decoding message
     if(H.type == 0){
-        decode(H, codeword_encoded, codeword_decoded);
+        simple_decode(H, codeword_encoded, codeword_decoded);
+        //decode(H, codeword_encoded, codeword_decoded);
+        //TODO: free matrices accordin to how they're done
     }
     else{
-        Transpose_pchk(&TH,H);
-#ifdef DEBUG
-printf("\n");
-        printf("Transposed H:\n");
-        print_parity_check(TH);
-        printf("\n");
-#endif
         sparse_decode(H,codeword_encoded,codeword_decoded);
-        free(TH.A[0]);
-        free(TH.A[1]);
-        free(TH.A);
 
+        //free matrices accordin to how they're done
         free(H.A[0]);
         free(H.A[1]);
         free(H.A);
@@ -170,12 +154,14 @@ printf("\n");
         printf("Not a valid codeword\n");
         return 0;
     }
-    print_vector_int(codeword_decoded, CODEWORD_LEN);
+    printf("decoded message:\n");
+    print_vector_int(codeword_decoded,  G.n_col);
+    printf("original message:\n");
+    print_vector_int(message,  G.n_row);
 
     free(message);
     free(codeword_encoded);
     free(codeword_decoded);
 
-    //check_possible_codewords(H);
     return 0;
 }

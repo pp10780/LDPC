@@ -21,7 +21,6 @@ int check_codeword(pchk H, int *codeword)
     }
 
     return 1;
-
 }
 
 // Function to compute a BSC a priori probabilities
