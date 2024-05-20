@@ -1,8 +1,7 @@
 #include "decoding.h"
 
 // Function to check if it is a valid codeword
-int check_codeword(pchk H, int *codeword)
-{
+int check_codeword(pchk H, int *codeword){
     int check = 0;
 
     for (int m = 0; m < H.n_row; m++)
@@ -24,8 +23,7 @@ int check_codeword(pchk H, int *codeword)
 }
 
 // Function to compute a BSC a priori probabilities
-float* bsc_a_priori_probabilities(int codeword_len,int *codeword)
-{
+float* bsc_a_priori_probabilities(int codeword_len,int *codeword){
     float *probabilities = (float*)malloc(codeword_len * sizeof(float));
     for (int i = 0; i < codeword_len; i++)
     {
@@ -42,8 +40,7 @@ float* bsc_a_priori_probabilities(int codeword_len,int *codeword)
 }
 
 // Function to return a priori probabilities based on the chosen mode
-void a_priori_probabilities(int mode,int codeword_len, int* codeword, float** probabilities)
-{
+void a_priori_probabilities(int mode,int codeword_len, int* codeword, float** probabilities){
     switch (mode)
     {
     case BSC_MODE:
@@ -70,8 +67,7 @@ void Initial_state(pchk H, float** M, float* probabilities){
 }
 
 // Function to compute the product of the other probabilities
-float product(float** M, int m, int n,int len)
-{
+float product(float** M, int m, int n,int len){
     float product = 1;
     for (int i = 0; i < len; i++)
     {
@@ -136,7 +132,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 {
     float *probabilities;
     float **M;
-    float **extrinsic_probabilities;
+    float **E;
     float *L;
     int try_n = 0;
 
@@ -155,10 +151,10 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
     // Initialize variables
     L = (float *)malloc(H.n_col * sizeof(float*));
     M = (float**)malloc(H.n_row * sizeof(float*));
-    extrinsic_probabilities = (float**)malloc(H.n_row * sizeof(float*));
+    E = (float**)malloc(H.n_row * sizeof(float*));
     for (int i = 0; i < H.n_row; i++)
     {
-        extrinsic_probabilities[i] = (float*)malloc(H.n_col * sizeof(float));
+        E[i] = (float*)malloc(H.n_col * sizeof(float));
         M[i] = (float*)malloc(H.n_col * sizeof(float));
     }
 #ifdef DEBUG
@@ -192,13 +188,13 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 #endif
 
         // Compute extrinsic probabilities matrix (E)
-        compute_extrinsic(H,extrinsic_probabilities,M);
+        compute_extrinsic(H,E,M);
 #ifdef DEBUG
         printf("Extrinsic probabilities: \n");
-        print_matrix_float(extrinsic_probabilities, H.n_row, H.n_col);
+        print_matrix_float(E, H.n_row, H.n_col);
 #endif
         // Test
-        Get_state(H,L,codeword_decoded,probabilities,extrinsic_probabilities);
+        Get_state(H,L,codeword_decoded,probabilities,E);
 #ifdef DEBUG
         printf("Final L: ");
         print_vector_float(L, H.n_col);
@@ -213,7 +209,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
         }
 
         // Update matrix M
-        Update_M(H,M,L,extrinsic_probabilities);
+        Update_M(H,M,L,E);
     }
 #ifdef DEBUG
     if(try_n == MAX_ITERATIONS)
@@ -224,9 +220,9 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
     for (int i = 0; i < H.n_row; i++)
     {
         free(M[i]);
-        free(extrinsic_probabilities[i]);
+        free(E[i]);
     }
     free(M);
-    free(extrinsic_probabilities);
+    free(E);
     return ;
 }

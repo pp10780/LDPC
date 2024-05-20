@@ -1,4 +1,5 @@
 #include "simple_operations.h"
+
 //=====DENSE=====
 void d_mod2_vectmatmul(int* out,pchk mat,int* vect){
     for(int m=0; m<mat.n_row; m++){
@@ -22,8 +23,9 @@ void  s_mod2_vectmatmul(int* out,pchk mat,int* vect){
 
 //=====GENERAL=====
 
+//this function perform the operation mat.vect =out
 void mod2_vectmatmul(int* out,pchk mat,int* vect){
-    switch( mat.type){
+    switch(mat.type){
         case 0://dense
             d_mod2_vectmatmul(out,mat,vect);
             break;

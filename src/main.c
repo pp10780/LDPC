@@ -70,30 +70,31 @@ int main(int argc, char *argv[])
     printf("\n");
 #endif
     srand(time(NULL));
-    int *message = generate_random_key(G.n_row);
+    int *message = generate_random_key(G.n_col);
 #ifdef DEBUG
     printf("message to be encoded:\n");
-    print_vector_int(message,G.n_row);
+    print_vector_int(message,G.n_col);
 #endif
     
-    int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
-    int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
+    int *codeword_encoded = (int*)calloc(G.n_row,sizeof(int));
+    int *codeword_decoded = (int*)calloc(G.n_row,sizeof(int));
 
     //encoding message
-    //encode((int *)message, G, codeword_encoded);
-    mod2_vectmatmul(message,G,codeword_encoded);
-    print_vector_int(codeword_encoded, G.n_col);
+    mod2_vectmatmul(codeword_encoded,G,message);
+    printf("Encoded message:\n");
+    print_vector_int(codeword_encoded, G.n_row);
 
     //transmiting message
     //add_error(codeword_encoded,G.n_col,0);
     int e[6]={1,0,0,0,0,0};
-    bitwise_vectors(codeword_encoded,codeword_encoded,(int *)e, G.n_col);
-    print_vector_int(codeword_encoded, G.n_col);
+    bitwise_vectors(codeword_encoded,codeword_encoded,(int *)e, G.n_row);
+    printf("Message with added error:\n");
+    print_vector_int(codeword_encoded, G.n_row);
 
     //decoding message
     if(H.type == 0){
-        simple_decode(H, codeword_encoded, codeword_decoded);
-        //decode(H, codeword_encoded, codeword_decoded);
+        //simple_decode(H, codeword_encoded, codeword_decoded);
+        decode(H, codeword_encoded, codeword_decoded);
 
         //free matrices accordin to how they're done
         for(int i=0;i<H.n_row;i++)
@@ -124,9 +125,9 @@ int main(int argc, char *argv[])
         return 0;
     }
     printf("decoded message:\n");
-    print_vector_int(codeword_decoded,  G.n_col);
+    print_vector_int(codeword_decoded,  G.n_row);
     printf("original message:\n");
-    print_vector_int(message,  G.n_row);
+    print_vector_int(message,  G.n_col);
 
     free(message);
     free(codeword_encoded);

@@ -6,6 +6,7 @@ OBJS    = $(addprefix $(OBJDIR)/, main.o decoding.o simple_operations.o display_
 SOURCE  = $(addprefix $(SRCDIR)/, main.c decoding.c simple_operations.c display_variables.c storage.c sparse_decoding.c simple_decoding.c)
 HEADER  = $(addprefix $(SRCDIR)/, decoding.h simple_operations.h defs.h display_variables.h storage.h sparse_decoding.h simple_decoding.h) 
 OUT     = $(BINDIR)/ldpc
+WRITTER = $(BINDIR)/writter
 
 CC      = gcc
 FLAGS	= -std=c99 -g -c -Wall
@@ -25,4 +26,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cu $(HEADER)
 	$(NVCC) $(CUFLAGS) $< -o $@
 
 clean:
-	rm -f $(OBJS) $(OUT)
+	rm -f $(OBJS) $(OUT) $(WRITTER)
+
+writter:
+	gcc src/writter.c -o bin/writter

@@ -7,26 +7,31 @@ int main(int argc, char *argv[]){
     char filename[100] = "matrices/G1";
 
     int nrow=3,ncol=6,type=1,nelements=10;
-    /*
     //H
     //int E[10] = {0,1,3,1,2,4,0,1,2,5};
     //int r[4]  = {0,3,6,10};
 
-    //G
+    //G -> this is wrong
     int E[10] = {0,3,5,1,3,4,5,2,4,5};
     int r[4]  = {0,3,7,10};
 
-    f = fopen (filename,"w+");
 
+    f = fopen (filename,"w+");
+    /*
     fwrite(&nrow,sizeof(int),1,f);
     fwrite(&ncol,sizeof(int),1,f);
     fwrite(&nelements,sizeof(int),1,f);
 
     fwrite(E,sizeof(int),10,f);
     fwrite(r,sizeof(int),4,f);
-    
-    fclose(f);
     */
+    
+    
+
+    int buffer[3*6+3]={6,3,0,1,0,0,0,1,0,1,1,0,0,1,1,1,1,1};
+    fwrite(buffer,sizeof(int),3*6+3,f);
+
+    fclose(f);
     //--------------------------------------------------------------------------------
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     //--------------------------------------------------------------------------------
