@@ -1,16 +1,5 @@
 #include "simple_decoding.h"
 
-// mod2 vector multiplication mat*vect = out
-void mod2_vectmatmul(int* out,pchk mat,int* vect){
-    for(int m=0; m<mat.n_row; m++){
-        out[m]=0;
-        for(int n=0; n<mat.n_col; n++){
-            if(mat.A[m][n] == 1)
-                out[m]^=vect[n];
-        }
-    }
-}
-
 //swap two interger values from their position
 void swap(int* a,int *b){
     int c=*a;
@@ -22,12 +11,6 @@ void swap(int* a,int *b){
 void swap_vectors(int *a, int *b, int size){
     for(int i=0;i<size;i++)
         swap(&(a[i]),&(b[i]));
-}
-
-//c = a ^ b but for intire vectors
-void bitwise_vectors(int *c, int *a, int *b, int size){
-    for(int i=0;i<size;i++)
-        c[i] = a[i] ^ b[i];
 }
 
 //function to obtain linear solve function(out) for in,
@@ -144,6 +127,22 @@ void simple_decode(pchk H, int* recv_codeword, int* codeword_decoded){
 #endif
 
     //remove error from message
-    bitwise_vectors(codeword_decoded,recv_codeword,e,H.n_row);
+    bitwise_vectors(codeword_decoded,recv_codeword,e,H.n_col);
 
+    //checkcode word (if the error was not inside the correct area this iwll be wrong)
+    //get sindrome -> matrix vector multiplication with mod 2 Hc' = s
+    mod2_vectmatmul(s,H,codeword_decoded);
+#ifdef DEBUG
+    printf("confirmation s:\n");
+    print_vector_int(s,H.n_col );
+#endif
+
+    for(int i=0; i< H.n_col; i++){
+        if(s[i]==1){
+            printf("decoding codeword is wrong!\n\n");
+            return;
+        }
+    }
+
+    printf("\n");
 }

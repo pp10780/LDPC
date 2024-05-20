@@ -1,54 +1,14 @@
 #include <time.h>
-#include "encoding.h"
 #include "decoding.h"
 #include "display_variables.h"
 #include "defs.h"
 #include "storage.h"
 #include "simple_decoding.h"
-
+#include "simple_operations.h"
 #include "sparse_decoding.h"
 
 //this is to go in the seperate file
 #include <string.h>
-
-void *Transpose_pchk(pchk *Tmat,pchk mat){
-    int *row_count;
-
-    //fill out matrix info
-    Tmat->n_row = mat.n_col;
-    Tmat->n_col = mat.n_row;
-    Tmat->type  = mat.type;
-
-    //allocate space
-    Tmat->A    = (int **)malloc(2              *sizeof(int*));
-    Tmat->A[0] = (int * )malloc(Tmat->type     *sizeof(int ));
-    Tmat->A[1] = (int * )malloc((Tmat->n_row+1)*sizeof(int ));
-    row_count  = (int * )calloc(Tmat->n_row    ,sizeof(int ));
-    
-
-    //count number of elements per row of mat
-    for(int e=0;e<mat.type;e++)
-        row_count[mat.A[0][e]]++;
-
-    //convert number of elements into row indexes
-    Tmat->A[1][0]=0;
-    for(int r=1;r <= Tmat->n_row;r++)
-        Tmat->A[1][r]  = row_count[r-1] + Tmat->A[1][r-1];
-
-    //fill out elements in their apropriate spots
-    for(int r=0; r<mat.n_row; r++){
-        for(int c=mat.A[1][r]; c<mat.A[1][r+1]; c++){
-            int tr = mat.A[0][c];
-            int index = Tmat->A[1][tr+1] - row_count[tr];
-            Tmat->A[0][ index ] = r;
-            row_count[tr] --;
-        }
-    }
-    
-    //for some reason I can't seem to free this vector
-    //free(row_count);
-    return NULL;
-}
 
 int *generate_random_key(int size){
     int *key=(int *)malloc(size*sizeof(int));
@@ -120,12 +80,13 @@ int main(int argc, char *argv[])
     int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
 
     //encoding message
-    encode((int *)message, G, codeword_encoded);
+    //encode((int *)message, G, codeword_encoded);
+    mod2_vectmatmul(message,G,codeword_encoded);
     print_vector_int(codeword_encoded, G.n_col);
 
     //transmiting message
     //add_error(codeword_encoded,G.n_col,0);
-    int e[6]={1,0,1,0,0,0};
+    int e[6]={1,0,0,0,0,0};
     bitwise_vectors(codeword_encoded,codeword_encoded,(int *)e, G.n_col);
     print_vector_int(codeword_encoded, G.n_col);
 
@@ -133,7 +94,15 @@ int main(int argc, char *argv[])
     if(H.type == 0){
         simple_decode(H, codeword_encoded, codeword_decoded);
         //decode(H, codeword_encoded, codeword_decoded);
-        //TODO: free matrices accordin to how they're done
+
+        //free matrices accordin to how they're done
+        for(int i=0;i<H.n_row;i++)
+            free(H.A[i]);
+        free(H.A);
+
+        for(int i=0;i<G.n_row;i++)
+            free(G.A[i]);
+        free(G.A);
     }
     else{
         sparse_decode(H,codeword_encoded,codeword_decoded);
