@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
     
     
 
-    int buffer[3*6+3]={6,3,0,1,0,0,0,1,0,1,1,0,0,1,1,1,1,1};
+    int buffer[3*6+3]={6,3,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,1,1};
     fwrite(buffer,sizeof(int),3*6+3,f);
 
     fclose(f);

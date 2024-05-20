@@ -93,29 +93,11 @@ int main(int argc, char *argv[])
 
     //decoding message
     if(H.type == 0){
-        //simple_decode(H, codeword_encoded, codeword_decoded);
-        decode(H, codeword_encoded, codeword_decoded);
-
-        //free matrices accordin to how they're done
-        for(int i=0;i<H.n_row;i++)
-            free(H.A[i]);
-        free(H.A);
-
-        for(int i=0;i<G.n_row;i++)
-            free(G.A[i]);
-        free(G.A);
+        simple_decode(H, codeword_encoded, codeword_decoded);
+        //decode(H, codeword_encoded, codeword_decoded);
     }
     else{
         sparse_decode(H,codeword_encoded,codeword_decoded);
-
-        //free matrices accordin to how they're done
-        free(H.A[0]);
-        free(H.A[1]);
-        free(H.A);
-
-        free(G.A[0]);
-        free(G.A[1]);
-        free(G.A);
     }
         
 
@@ -129,6 +111,9 @@ int main(int argc, char *argv[])
     printf("original message:\n");
     print_vector_int(message,  G.n_col);
 
+
+    free_pchk(G);
+    free_pchk(H);
     free(message);
     free(codeword_encoded);
     free(codeword_decoded);

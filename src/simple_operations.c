@@ -1,4 +1,5 @@
 #include "simple_operations.h"
+#include <stdlib.h>
 
 //=====DENSE=====
 void d_mod2_vectmatmul(int* out,pchk mat,int* vect){
@@ -11,6 +12,11 @@ void d_mod2_vectmatmul(int* out,pchk mat,int* vect){
     }
 }
 
+void d_free_pchk(pchk mat){
+    for(int i=0;i<mat.n_row;i++)
+            free(mat.A[i]);
+    free(mat.A);
+}
 
 //=====SPARSE=====
 
@@ -21,9 +27,15 @@ void  s_mod2_vectmatmul(int* out,pchk mat,int* vect){
     }
 }
 
+void s_free_pchk(pchk mat){
+    free(mat.A[0]);
+    free(mat.A[1]);
+    free(mat.A);
+}
+
 //=====GENERAL=====
 
-//this function perform the operation mat.vect =out
+//this function performs the operation mat.vect =out
 void mod2_vectmatmul(int* out,pchk mat,int* vect){
     switch(mat.type){
         case 0://dense
@@ -34,6 +46,18 @@ void mod2_vectmatmul(int* out,pchk mat,int* vect){
     }
 }
 
+//this function frees the insides of the structure mat
+void free_pchk(pchk mat){
+    switch(mat.type){
+        case 0://dense
+            d_free_pchk(mat);
+            break;
+        default://sparse
+            s_free_pchk(mat);
+    }
+}
+
+//this function performs the operation c = a ^b vector wise
 void bitwise_vectors(int *c, int *a, int *b, int size){
     for(int i=0;i<size;i++)
         c[i] = a[i] ^ b[i];

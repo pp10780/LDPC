@@ -145,4 +145,7 @@ void simple_decode(pchk H, int* recv_codeword, int* codeword_decoded){
     }
 
     printf("\n");
+    free(s);
+    free(e);
+    free_pchk(D);
 }
