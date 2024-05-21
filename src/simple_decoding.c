@@ -7,6 +7,7 @@ void swap(int* a,int *b){
     *b=c;
 }
 
+//this can be done with onemkl using  cblas_dswap(size,a,inca,b,incb); (with inca and incb being 1)
 //swap two interger values from their position for two vectors
 void swap_vectors(int *a, int *b, int size){
     for(int i=0;i<size;i++)

@@ -104,12 +104,14 @@ depois pega na terceira linha e da xor das duas
     >assim o codewords de erro fica limitado, se o numero dessas codewords consegue ser indexado pelo sindrome 
     >e se todas essas error codewords tiverem sindromes diferentes 
     >isto funciona se um pouco diferente em que "D" tem mesmo que ser feito apriori 
-   
 
+-usar biblioteca oneMKL
+    > Eu olhei para as bibliotecas tanto de vetores come de matrizes e vetores mas não existem nenhumas que dê para especificar modulo 2 ou xor
+    > A única operação útil que encontrei é a de trocar o valor de vetores (que pode ser útil no linear solver)
 -implementar GPU
+-usar biblioteca cuBlas
 
--implementar um sistema de ficheiros melhor que txt
-    >fazer um programa para escrever novas matrizes (vou usar o test entretanto)
+-implementar um sistema de escrever matrizes melhor!
+-implementar um cronometro
 -limpeza de código
-    >juntar os dois ficheiros de decoding (sparse e normal) se for possível/útil
-        -neste momento parece não ser útil juntar
+
