@@ -226,8 +226,8 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
 
     codeword_encoded[0] = 1 ;
     printf("\ncodeword encoded:[ ");
-    for (int i=0;i<G.n_col;i++)
-        printf("d "codeword_encoded);
+    for(int i=0;i<G.n_col;i++)
+        printf("d ",codeword_encoded);
     printf("]\n");
 
     GPU_decode(H, codeword_encoded, codeword_decoded);
