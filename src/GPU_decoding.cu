@@ -108,6 +108,10 @@ __global__ void early_termination(int n_row, int n_col, int *H, int *z, int d_ch
 extern "C"
 void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     //initialize device memory
+    //REMOVE: testing vector
+    float test;
+    test = (float *)calloc(H.n_row,sizeof(float));
+
     //decoding matrix
     float *dH;
     cudaMalloc((void **)&dH, H.n_row * H.n_col * sizeof(float));
@@ -138,10 +142,10 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     cudaDeviceSynchronize();
 
     //REMOVE: this is to test if the r kernel is doing it's job
-    cudaMemcpy( codeword_decoded, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy( test, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
     printf("\nresult: ");
     for(int i=0;i< H.n_col;i++){
-        printf("%d ",codeword_decoded[i]);
+        printf("%f ",test[i]);
     }
     printf("\n");
 
