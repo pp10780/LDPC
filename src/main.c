@@ -7,7 +7,9 @@
 
 #include "sparse_decoding.h"
 
+extern "C" {
 #include "GPU_decoding.h"
+}
 
 //this is to go in the seperate file
 #include <string.h>
