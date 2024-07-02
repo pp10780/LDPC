@@ -224,5 +224,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
 
     int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
 
+    codeword_decoded[0] = 1 ;
+
     GPU_decode(H, codeword_encoded, codeword_decoded);
  }
