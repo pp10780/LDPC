@@ -156,3 +156,32 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 
     return ;
 }
+
+//REMOVE : FOR TESTING PURPOSES ONLY!
+ int main(int argc, char *argv[]){
+    //check input arguments
+    if(argc!=3){
+        printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath\n");
+        exit(1);
+    }
+
+    //get parity check matrices from file
+    pchk H,G,TH;
+    get_matrix_from_file(&G,argv[1]);
+    get_matrix_from_file(&H,argv[2]);
+
+#ifdef DEBUG
+    printf("G:\n");
+    print_parity_check(G);
+    printf("\n");
+    printf("H:\n");
+    print_parity_check(H);
+    printf("\n");
+#endif
+
+    int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
+
+    int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
+
+    GPU_decode(H, codeword_encoded, codeword_decoded);
+ }
