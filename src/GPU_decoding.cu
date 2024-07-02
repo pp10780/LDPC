@@ -109,7 +109,7 @@ extern "C"
 void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     //initialize device memory
     //REMOVE: testing vector
-    float test;
+    float* test;
     test = (float *)calloc(H.n_row,sizeof(float));
 
     //decoding matrix
