@@ -135,10 +135,10 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     //TODO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
     GPU_apriori_probabilities<<<1, 10>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
     //GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
-    cudaCheckError(cudaDeviceSynchronize());
+    cudaDeviceSynchronize();
 
-     cudaMemcpy( codeword_decoded, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
-
+    //REMOVE: this is to test if the r kernel is doing it's job
+    cudaMemcpy( codeword_decoded, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
     printf("\nresult: ");
     for(int i=0;i< H.n_col;i++){
         printf("%d ",codeword_decoded[i]);
@@ -212,7 +212,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     }
 
     //get parity check matrices from file
-    pchk H,G,TH;
+    pchk H,G;
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
 
