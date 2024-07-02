@@ -14,7 +14,7 @@ __global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float
     if(index > n_col)
         return;
     //TODO:this could be fancier by just changing the signal bit according to the data bit 
-    float r_val=(m==0) ? llr_i : -llr_i;
+    float r_val=(m[index]==0) ? llr_i : -llr_i;
 
     //write to global memory
     r[index] = r_val;
@@ -112,6 +112,8 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     float* test;
     test = (float *)calloc(H.n_row,sizeof(float));
 
+    float init_prob=log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
+
     //decoding matrix
     float *dH;
     cudaMalloc((void **)&dH, H.n_row * H.n_col * sizeof(float));
@@ -123,26 +125,35 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 
     //vectors
     float *r,*L;
-    int   *z,*dm;
+    int   *z,*m;
     cudaMalloc((void **)&r, H.n_col * sizeof(float));
     cudaMalloc((void **)&L, H.n_col * sizeof(float));
     cudaMalloc((void **)&z, H.n_col * sizeof(int));
-    cudaMalloc((void **)&dm, H.n_col * sizeof(int));
+    cudaMalloc((void **)&m, H.n_col * sizeof(int));
+
+    //REMOVE THIS :
+    printf("\nH:%d X %d\n",H.n_row,H.n_col);
+    printf("\ndata: ");
+    for(int i=0;i< H.n_col;i++){
+        printf("%d ",recv_codeword[i]);
+    }
+    printf("\n");
 
     //load inital data to device
-    cudaMemcpy(dm, recv_codeword, H.n_col * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(m, recv_codeword, H.n_col * sizeof(int), cudaMemcpyHostToDevice);
     //not very confident in this thing bellow
     for(int i=0;i< H.n_row;i++)
         cudaMemcpy( &(dH[i*H.n_col]), &(H.A[i]), H.n_col * sizeof(int), cudaMemcpyHostToDevice);
 
     //kernel 0:
     //TODO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
-    GPU_apriori_probabilities<<<1, 10>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
-    //GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
+    GPU_apriori_probabilities<<<1, 10>>>(H.n_col, init_prob, m, r, L);
+    //GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, init_prob, dm, r, L);
     cudaDeviceSynchronize();
 
     //REMOVE: this is to test if the r kernel is doing it's job
     cudaMemcpy( test, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
+
     printf("\nresult: ");
     for(int i=0;i< H.n_col;i++){
         printf("%f ",test[i]);
@@ -227,7 +238,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     codeword_encoded[0] = 1 ;
     printf("\ncodeword encoded:[ ");
     for(int i=0;i<G.n_col;i++)
-        printf("d ",codeword_encoded);
+        printf("%d ",codeword_encoded[i]);
     printf("]\n");
 
     GPU_decode(H, codeword_encoded, codeword_decoded);

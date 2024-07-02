@@ -96,6 +96,8 @@ depois pega na terceira linha e da xor das duas
 ## TODO 
 
 -implementar GPU
+    >Makefile a funcionar com GPU!
+        -do que eu percebo é um problema do nvcc estar a usar uma versão diferente do gcc que é usado diretamente
     >calculate number of threads and thread blocks
         -define thread blocks in defs
         -compute number of blocks required
