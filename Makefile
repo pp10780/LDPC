@@ -16,7 +16,7 @@ MATH    = -lm
 all: $(OUT)
 
 $(OUT): $(OBJS) $(CUOBJS)
-	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH) -lcudart
+	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) $(MATH)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADER)
 	$(CC) $(FLAGS) $< -o $@
