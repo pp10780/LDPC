@@ -132,10 +132,18 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
         cudaMemcpy( &(dH[i*H.n_col]), &(H.A[i]), H.n_col * sizeof(int), cudaMemcpyHostToDevice);
 
     //kernel 0:
-    //TOFO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
+    //TODO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
     GPU_apriori_probabilities<<<1, 10>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
     //GPU_apriori_probabilities<<<blocks, THREADS_PER_BLOCK>>>(H.n_col, log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE), dm, r, L);
-    //cudaCheckError(cudaDeviceSynchronize());
+    cudaCheckError(cudaDeviceSynchronize());
+
+     cudaMemcpy( codeword_decoded, r, H.n_col * sizeof(int), cudaMemcpyDeviceToHost);
+
+    printf("\nresult: ");
+    for(int i=0;i< H.n_col;i++){
+        printf("%d ",codeword_decoded[i]);
+    }
+    printf("\n");
 
     /*
     for (int try_n = 0; try_n<MAX_ITERATION; try_n++){
@@ -154,6 +162,7 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     }
     */
 
+    //missing the removal of the results from the device
     return ;
 }
 

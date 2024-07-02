@@ -121,6 +121,7 @@ depois pega na terceira linha e da xor das duas
         -compute z
     >kernel 3 early termination: (do this later has no resutls really exist so far)
         -get flag from H and z
+    >retirar codeword do device
 
 -implementar um sistema de ficheiros melhor que txt
     >fazer um programa para escrever novas matrizes (vou usar o test entretanto)
