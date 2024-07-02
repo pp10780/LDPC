@@ -225,7 +225,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
 
     codeword_encoded[0] = 1 ;
-    printf("\ncodeword encoded:[ ")
+    printf("\ncodeword encoded:[ ");
     for (int i=0;i<G.n_col;i++)
         printf("d "codeword_encoded);
     printf("]\n");
