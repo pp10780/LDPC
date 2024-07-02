@@ -207,15 +207,6 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
 
-#ifdef DEBUG
-    printf("G:\n");
-    print_parity_check(G);
-    printf("\n");
-    printf("H:\n");
-    print_parity_check(H);
-    printf("\n");
-#endif
-
     int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
 
     int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
