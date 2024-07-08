@@ -95,6 +95,8 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
+-isto vai ter que ser merged com o branch "without transposition"
+    -esse branch tema funcao "free_phck" no storage
 -problemas que tenho com o algoritmo
     >p é o numero de parity checks 
     >este metodo consegue corrigir n erros se eles estiverem na "parte de cima" da mesagem, porque ele consegue detetar p erros
