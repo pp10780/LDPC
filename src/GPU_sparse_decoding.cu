@@ -8,7 +8,8 @@ extern "C" {
 }
 
 //kernel 0: innit -> compute r and Li from m
-__global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
+//this is the same as sparse implementation
+__global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -24,7 +25,7 @@ __global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float
 
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
-__global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E, float *L, int *z){
+__global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float *M, float* E, float *L, int *z){
 
     float LE = 1; //row value used to compute E
     int j = blockIdx.x * blockDim.x + threadIdx.x;
@@ -35,27 +36,24 @@ __global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E, f
         return;
 
     //do full row for M [first recursion]
-    for(int i = 0 ; i<n_col; i++){
-        if(H[row_start + i]!=0){
-            //early termination check (this is being done in parallel)
-            check ^= z[i];
+    for (int i=Hi[j];i<Hi[j+1];i++){
 
-            float M_val = L[i] - E[row_start + i];
+        //early termination check (this is being done in parallel)
+        check ^= z[H[i]];
 
-            //store row value
-            LE *= tanh(M_val/2);
-            //writing result in global memory
-            M[row_start + i] = M_val;
-        }
+        float M_val = L[H[i]] - E[i];
+
+        //store row value
+        LE *= tanh(M_val/2);
+        //writing result in global memory
+        M[i] = M_val;
     }
 
     //do full row for E [second recursion]
-    for(int i = 0 ; i<n_col; i++){
-        if(H[row_start + i]!=0){
-            //exclude corresponding element from row -> this is going back to global memory which min sum doesn't have to (BAD!)
-            float p = LE/(tanh(M[row_start + i]/2) );
-            E[row_start + i] = log((1+p)/(1-p));
-        }
+    for (int i=Hi[j];i<Hi[j+1];i++){
+        //exclude corresponding element from row
+        float p = LE/(tanh(M[i]/2) );
+        E[i] = log((1+p)/(1-p));
     }
 
     //this is probably very bad maybe do a reduction?
@@ -64,7 +62,7 @@ __global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E, f
 }
 
 //kernel 2: column wise -> compute L and z from E and r
-__global__ void GPU_column_wise(int n_row, int n_col, int *H, float* E, float* r,float *L, int *z){
+__global__ void GPU_sparse_column_wise(int n_elements, int *H, float* E, float* r,float *L, int *z){
     int i = (blockIdx.x * blockDim.x + threadIdx.x);
     float L_val;//only write to global memory in the end
 
@@ -72,44 +70,20 @@ __global__ void GPU_column_wise(int n_row, int n_col, int *H, float* E, float* r
         return;
     
     L_val=r[i];
-    //go through E column wise
-    for(int j=0; j<n_row; j++){
-        if (H[j*n_col + i]!=0){
-            L_val+=E[j*n_col + i];
-        }
+    //go through E column wise -> this is terrebly inefficient in csr can't find anyone doing it different still in csr
+    //going column wise means going through the whole matrix H and if the index the corresponding column it is part of the column
+    for(int si=0; si<n_elements ; si++){
+        if(H[si]==i)
+            L_val+=E[i];
     }
 
     L[i] = L_val;
     z[i] = (L_val < 0) ? 1 : 0;;
 }
 
-//this is very inneficient has of right now has it is not the focus and I didn't understant how they're doing it in the other one
-//kernel 3: early termination -> see if word is a success
-__global__ void early_termination(int n_row, int n_col, int *H, int *z, int *d_check){
-    int j = (blockIdx.x * blockDim.x + threadIdx.x);
-    int row_start = n_col*j;
-
-    if(j > n_row)
-        return;
-
-    //TODO: this is extremelly inneficient!
-    int check=0;
-
-    //TODO: this could be merged into kernel 1
-    //going row wise
-    for(int i = 0 ; i<n_col; i++){
-        if(H[ row_start*j + i] == 1)
-            check ^= z[i];
-    }
-
-    //this is probably very bad maybe do a reduction?
-    if(check == 1)
-        *d_check=0;
-}
-
 // Function to decode the message
 extern "C"
-void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
+void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 #ifdef TIMES
     float time;
     cudaEvent_t start, stop;
@@ -120,15 +94,9 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 #endif
     //initialize device memory
     int check;
-    //Couldn't find a work arround to memcpy being the only way to insert this into GPU 
-    int* H_mem;
-    H_mem = (int *)calloc(H.n_row*H.n_col,sizeof(int));
-    for(int j=0;j< H.n_row;j++){
-        for(int i=0;i<H.n_col;i++)
-            H_mem[j*H.n_col+i]=H.A[j][i];
-    }
+    
     //TODO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
-    int threads_per_block=32;//CL_NV_DEVICE_WARP_SIZE
+    int threads_per_block=32;//CL_NV_DEVICE_WARP_SIZE (not working for some reason)
     //TODO: make this better
     int rw_blocks=H.n_col/threads_per_block + 1;
     int cw_blocks=H.n_row/threads_per_block + 1;
@@ -137,15 +105,17 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     float init_prob=log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
 
     //decoding matrix
-    int *dH;
-    cudaMalloc((void **)&dH, H.n_row * H.n_col * sizeof(int));
+    int *dH;//indexes A[0]
+    int *dHi;//row start and end (A[1])
+    cudaMalloc((void **)&dH , H.type      * sizeof(int));
+    cudaMalloc((void **)&dHi, (H.n_row+1) * sizeof(int));
 
     //computation matrices
     float *M,*E;
-    cudaMalloc((void **)&M, H.n_row * H.n_col * sizeof(float));
-    cudaMalloc((void **)&E, H.n_row * H.n_col * sizeof(float));
+    cudaMalloc((void **)&M, H.type * sizeof(float));
+    cudaMalloc((void **)&E, H.type * sizeof(float));
     //E needs to be set at 0 at the start
-    cudaMemset(M,0,H.n_row * H.n_col * sizeof(int));
+    cudaMemset(M,0,H.type  * sizeof(int));
 
     //vectors
     float *r,*L;
@@ -162,7 +132,8 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 
     //load inital data to device
     cudaMemcpy(m, recv_codeword, H.n_col * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy( dH, H_mem, H.n_row*H.n_col * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy( dH , H.A[0], H.type      * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy( dHi, H.A[1], (H.n_row+1) * sizeof(int), cudaMemcpyHostToDevice);
 
 #ifdef TIMES
     cudaEventRecord(stop, 0);
@@ -192,15 +163,15 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
         //set early termination do occur
         cudaMemset(d_check,1,sizeof(int));
         //kernel 1:
-        GPU_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, M, E, L, z);
+        GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, M, E, L, z);
         cudaDeviceSynchronize();
 
         //kernel 2:
-        GPU_column_wise<<<cw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, E, r, L, z);
-
+        GPU_sparse_column_wise<<<cw_blocks, threads_per_block>>>(H.type, dH, E, r, L, z);
+        
         if (check==1 && try_n!=0)
             break;
-
+        
         cudaDeviceSynchronize();
 
         //kernel 3: -> this was merged into kernel 1

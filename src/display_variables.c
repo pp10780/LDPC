@@ -75,6 +75,7 @@ void print_matrix_float(float** matrix, int rows, int cols)
     }
 }
 
+/*
 // Function to create a list of all possible codewords
 void possible_codeword_list(int ***list)
 {
@@ -92,7 +93,7 @@ void possible_codeword_list(int ***list)
         }
     }
 }
-
+*/
 // Function to check all possible codewords
 /*
 void check_possible_codewords(pchk H)

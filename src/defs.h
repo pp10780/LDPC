@@ -1,25 +1,25 @@
 #ifndef DEF
     #define DEF
 
-    #define MAX_ITERATIONS 5
-
-    #define CODEWORD_LEN 6 // N this cannot be fixed
-    #define MESSAGE_LEN 3  // K this cannot be fixed
-    #define NUM_CHECKS 4   // M this cannot be fixed
+    #define MAX_ITERATIONS 400
 
     #define BSC_MODE 0
     #define AWGN_MODE 1
 
     #define CURR_MODE BSC_MODE
 
-    #define BSC_ERROR_RATE 0.2
+    #define BSC_ERROR_RATE 0.07
 
     typedef struct Pchk{
         int n_row;
         int n_col;
+        int n_elements;
         int type;
         int **A;
     } pchk;
 
-    #define DEBUG
+    //#define GPU
+    //#define DEBUG
+    //#define TIMES
+    #define RESULT
 #endif

@@ -3,3 +3,5 @@
 #include "defs.h"
 
 void **get_matrix_from_file(pchk *matrix,char *filename);
+
+void free_pchk(pchk mat);

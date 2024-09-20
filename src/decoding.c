@@ -1,4 +1,5 @@
 #include "decoding.h"
+#include <time.h>
 
 // Function to check if it is a valid codeword
 int check_codeword(pchk H, int *codeword)
@@ -15,9 +16,7 @@ int check_codeword(pchk H, int *codeword)
             }
         }
         if (check == 1)
-        {
             return 0;
-        }
     }
 
     return 1;
@@ -135,6 +134,10 @@ void Get_state(pchk H, float *L, int *codeword_decoded, float *probabilities, fl
 // Function to decode the message
 void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 {
+#ifdef TIMES
+    clock_t clock_end;
+    clock_t clock_start = clock();
+#endif
     float *probabilities;
     float **M;
     float **extrinsic_probabilities;
@@ -162,9 +165,19 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
         extrinsic_probabilities[i] = (float*)malloc(H.n_col * sizeof(float));
         M[i] = (float*)malloc(H.n_col * sizeof(float));
     }
+
+#ifdef TIMES
+    clock_end = clock();
+    //printf("memory initialization time:%ld\n",(clock_end-clock_start));
+    printf(" %ld",(clock_end-clock_start));
+    clock_start = clock();
+#endif
+    
 #ifdef DEBUG
     printf("---------------------INITIALIZATIONS----------------------\n");
     
+
+
     printf("Codeword: ");
     print_vector_int(recv_codeword, H.n_col);
     printf("\n");
@@ -179,13 +192,23 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 #endif
 
     // Initialize matrix M
+    Initial_state( H, M, probabilities);
+
+#ifdef TIMES
+    clock_end = clock();
+    //printf("initialization time:%ld\n",(clock_end-clock_start));
+    printf(" %ld",(clock_end-clock_start));
+    clock_start = clock();
+#endif
 
 #ifdef DEBUG
     printf("Matrix M: \n");
     print_matrix_float(M, H.n_row, H.n_col);
 #endif
-    while (try_n < MAX_ITERATIONS)
-    {
+
+
+
+    while (try_n < MAX_ITERATIONS){
         try_n++;
 
 #ifdef DEBUG
@@ -207,7 +230,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
         // Check if it is a valid codeword
         if (check_codeword(H, codeword_decoded) == 1)
         {
-#ifdef DEBUG
+#ifdef RESULT
             printf("Completed after %d iterations\n", try_n);
 #endif
             break;
@@ -216,11 +239,13 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
         // Update matrix M
         Update_M(H,M,L,extrinsic_probabilities);
     }
-#ifdef DEBUG
+
+#ifdef RESULT
     if(try_n == MAX_ITERATIONS)
         printf("Not completed after %d iterations\n", try_n);  
 #endif
     codeword_decoded = NULL;
+
     free(probabilities);
     for (int i = 0; i < H.n_row; i++)
     {
@@ -229,5 +254,12 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
     }
     free(M);
     free(extrinsic_probabilities);
+
+#ifdef TIMES
+    clock_end = clock();
+    //printf("x iterations time:%ld\n",(clock_end-clock_start));
+    printf(" %ld",(clock_end-clock_start));
+#endif
+
     return ;
 }

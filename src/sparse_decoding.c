@@ -8,9 +8,13 @@ int scheck_codeword(pchk H, int *codeword){
     for (int i=0;i<H.n_row;i++){
         for (int j=H.A[1][i];j<H.A[1][i+1];j++)
             check ^= codeword[H.A[0][j]];
-        if(check != 0)
+        if(check != 0){
+            printf("fail %d\n",i);
             return 0;
+        }
+            
     }
+    printf("succes terminating early\n");
     return 1;
 
 }
@@ -21,12 +25,10 @@ float* sbsc_a_priori_probabilities(int codeword_len,int *codeword)
     float *probabilities = (float*)malloc(codeword_len * sizeof(float));
     for (int i = 0; i < codeword_len; i++)
     {
-        if (codeword[i] == 0)
-        {
+        if (codeword[i] == 0){
             probabilities[i] = log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
         }
-        else
-        {
+        else{
             probabilities[i] = log(BSC_ERROR_RATE/(1 - BSC_ERROR_RATE));
         }
     }
@@ -150,9 +152,7 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     while (try_n < MAX_ITERATIONS){
         try_n++;
 
-#ifdef DEBUG
         printf("---------------------ITERATION %d----------------------\n", try_n);
-#endif
         
         // Compute extrinsic probabilities matrix (E) it's compressed vector L and the best guess z
         scompute_extrinsic(H,M,E,LE,L,r,codeword_decoded);
