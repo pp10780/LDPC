@@ -8,7 +8,8 @@
 
     #define CURR_MODE BSC_MODE
 
-    #define BSC_ERROR_RATE 0.07
+    #define DEFAULT_ERROR_RATE 0.2
+    #define DEFAULT_MAX_ERRORS -1 //this means no max
 
     typedef struct Pchk{
         int n_row;

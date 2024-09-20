@@ -5,4 +5,4 @@
 #include "display_variables.h"
 
 // Function to decode the message using sparse matrix
-void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded);
+void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate);

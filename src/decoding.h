@@ -8,6 +8,6 @@
 #include "display_variables.h"
 #include "defs.h"
 
-void decode(pchk H, int* recv_codeword, int* codeword_decoded);
+void decode(pchk H, int* recv_codeword, int* codeword_decoded, float error_rate);
 
 #endif

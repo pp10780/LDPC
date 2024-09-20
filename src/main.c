@@ -20,6 +20,8 @@ int *generate_random_key(int size){
     return key;
 }
 
+/*
+this was for adding a specific number of errors to the message
 void add_error(int *codeword,int codeword_size,int n_errors){
     int *pos;
     int new_pos,flag;
@@ -48,17 +50,37 @@ void add_error(int *codeword,int codeword_size,int n_errors){
     free(pos);
     return;
 }
+*/
+
+void add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
+    int inverse=(1/error_rate),counter=0;
+    for(int c=0;c<codeword_size;c++){
+        //error
+        if(rand() % inverse == 0){
+            codeword[c] = !codeword[c];
+            counter++;
+            if(counter >= max_errors && max_errors!= -1)
+                break;
+        }
+        
+    }
+    printf("added %d errors\n",counter);        
+    return;
+}
 
 int main(int argc, char *argv[])
 {
-    int num_errors=1;
+    float error_rate= DEFAULT_ERROR_RATE;
+    int max_errors = DEFAULT_MAX_ERRORS;
     //check input arguments
-    if(argc!=3 && argc!=4){
-        printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath\n");
+    if(argc<3 && argc>5){
+        printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath [error rate] [max errors]\n");
         exit(1);
     }
-    if(argc==4)
-        num_errors=atoi(argv[3]);
+    if(argc>3)
+        error_rate=atof(argv[3]);
+    if(argc>4)
+        max_errors=atoi(argv[4]);
 
     //get parity check matrices from file
     pchk H,G;
@@ -100,9 +122,8 @@ int main(int argc, char *argv[])
     print_vector_int(codeword_encoded, G.n_col);
 #endif
 
-    //TRANSMISSION
-    add_error(codeword_encoded,G.n_col,num_errors);
-    //codeword_encoded[3]= !(codeword_encoded[3]) ;
+    //TRANSMISSIONs
+    add_error(codeword_encoded,G.n_col,error_rate,max_errors);
 
 
         
@@ -115,14 +136,14 @@ int main(int argc, char *argv[])
 #endif
     if(H.type == 0){
 #ifndef GPU
-        decode(H, codeword_encoded, codeword_decoded);
+        decode(H, codeword_encoded, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
         GPU_decode(H, codeword_encoded, codeword_decoded);
 #endif
     }
     else{
-        sparse_decode(H,codeword_encoded,codeword_decoded);
+        sparse_decode(H,codeword_encoded,codeword_decoded,error_rate);
     }
 
 #ifdef TIMES

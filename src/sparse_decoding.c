@@ -20,28 +20,28 @@ int scheck_codeword(pchk H, int *codeword){
 }
 
 // Function to compute a BSC a priori probabilities
-float* sbsc_a_priori_probabilities(int codeword_len,int *codeword)
+float* sbsc_a_priori_probabilities(int codeword_len,int *codeword,float error_rate)
 {
     float *probabilities = (float*)malloc(codeword_len * sizeof(float));
     for (int i = 0; i < codeword_len; i++)
     {
         if (codeword[i] == 0){
-            probabilities[i] = log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
+            probabilities[i] = log((1 - error_rate)/error_rate);
         }
         else{
-            probabilities[i] = log(BSC_ERROR_RATE/(1 - BSC_ERROR_RATE));
+            probabilities[i] = log(error_rate/(1 - error_rate));
         }
     }
     return probabilities;
 }
 
 // Function to return a priori probabilities based on the chosen mode
-void sa_priori_probabilities(int mode,int codeword_len, int *codeword, float** probabilities)
+void sa_priori_probabilities(int mode,int codeword_len, int *codeword, float** probabilities,float error_rate)
 {
     switch (mode)
     {
     case BSC_MODE:
-        *probabilities = sbsc_a_priori_probabilities(codeword_len,codeword);
+        *probabilities = sbsc_a_priori_probabilities(codeword_len,codeword,error_rate);
         break;
     default:
         break;
@@ -95,7 +95,7 @@ void Mi(pchk H, float *M, float *LE, float *r){
 }
 
 // Function to decode the message
-void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
+void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate){
     float *r;
     float *M,*E; //these are matrices in csr
     float *L,*LE;
@@ -133,7 +133,7 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     
     //Compute LLR a priori probabilities (r)
     //this is the same has the "normal" decoding
-    sa_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &r);
+    sa_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &r,error_rate);
 
 #ifdef DEBUG
     printf("Probabilities: ");

@@ -24,30 +24,30 @@ int check_codeword(pchk H, int *codeword)
 }
 
 // Function to compute a BSC a priori probabilities
-float* bsc_a_priori_probabilities(int codeword_len,int *codeword)
+float* bsc_a_priori_probabilities(int codeword_len,int *codeword,float error_rate)
 {
     float *probabilities = (float*)malloc(codeword_len * sizeof(float));
     for (int i = 0; i < codeword_len; i++)
     {
         if (codeword[i] == 0)
         {
-            probabilities[i] = log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
+            probabilities[i] = log((1 - error_rate)/error_rate);
         }
         else
         {
-            probabilities[i] = log(BSC_ERROR_RATE/(1 - BSC_ERROR_RATE));
+            probabilities[i] = log(error_rate/(1 - error_rate));
         }
     }
     return probabilities;
 }
 
 // Function to return a priori probabilities based on the chosen mode
-void a_priori_probabilities(int mode,int codeword_len, int* codeword, float** probabilities)
+void a_priori_probabilities(int mode,int codeword_len, int* codeword, float** probabilities, float error_rate)
 {
     switch (mode)
     {
     case BSC_MODE:
-        *probabilities = bsc_a_priori_probabilities(codeword_len,codeword);
+        *probabilities = bsc_a_priori_probabilities(codeword_len,codeword,error_rate);
         break;
     default:
         break;
@@ -132,7 +132,7 @@ void Get_state(pchk H, float *L, int *codeword_decoded, float *probabilities, fl
 }
 
 // Function to decode the message
-void decode(pchk H, int *recv_codeword, int *codeword_decoded)
+void decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
 {
 #ifdef TIMES
     clock_t clock_end;
@@ -184,7 +184,7 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded)
 #endif
 
     //Compute LLR a priori probabilities (r)
-    a_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &probabilities);
+    a_priori_probabilities(CURR_MODE, H.n_col , recv_codeword, &probabilities,error_rate);
 
 #ifdef DEBUG
     printf("Probabilities: ");
