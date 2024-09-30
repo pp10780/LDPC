@@ -9,7 +9,6 @@ int scheck_codeword(pchk H, int *codeword){
         for (int j=H.A[1][i];j<H.A[1][i+1];j++)
             check ^= codeword[H.A[0][j]];
         if(check != 0){
-            printf("fail %d\n",i);
             return 0;
         }
             
@@ -114,12 +113,12 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error
         memcpy(codeword_decoded, recv_codeword, H.n_col * sizeof(int));
         return ;
     }
+
     // Initialize variables
-    
     L  = (float *)calloc(H.n_col  , sizeof(float)); //colapsed E + prob column wise
-    LE = (float *)calloc(H.n_row , sizeof(float)); //colapsed product of M rowwise
-    M  = (float *)malloc(H.type   * sizeof(float)); //the index for M is H
-    E  = (float *)malloc(H.type   * sizeof(float)); //the index for E is TH
+    LE = (float *)calloc(H.n_row , sizeof(float));  //colapsed product of M rowwise
+    M  = (float *)malloc(H.n_elements   * sizeof(float)); //the index for M is H
+    E  = (float *)malloc(H.n_elements   * sizeof(float)); //the index for E is H
 
     
     
@@ -152,7 +151,7 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error
     while (try_n < MAX_ITERATIONS){
         try_n++;
 
-        printf("---------------------ITERATION %d----------------------\n", try_n);
+        //printf("---------------------ITERATION %d----------------------\n", try_n);
         
         // Compute extrinsic probabilities matrix (E) it's compressed vector L and the best guess z
         scompute_extrinsic(H,M,E,LE,L,r,codeword_decoded);

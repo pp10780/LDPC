@@ -20,60 +20,32 @@ int *generate_random_key(int size){
     return key;
 }
 
-/*
-this was for adding a specific number of errors to the message
-void add_error(int *codeword,int codeword_size,int n_errors){
-    int *pos;
-    int new_pos,flag;
-
-    if(codeword_size < n_errors){
-        printf("too much error is being added\n");
-        return;
-    }
-    pos=(int *)malloc(n_errors*sizeof(int));
-
-    for(int i=0;i<n_errors;){
-        new_pos = rand() % codeword_size;
-        flag=1;
-        for(int c=0;c<i;c++){
-            if(pos[c] == new_pos){
-                flag=0;
-                break;
-            }
-        }
-        if(flag){
-            pos[i]=new_pos;
-            i++;
-            codeword[new_pos]=!codeword[new_pos];
-        }
-    }
-    free(pos);
-    return;
-}
-*/
-
-void add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
+int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     int inverse=(1/error_rate),counter=0;
+    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));;
+
     for(int c=0;c<codeword_size;c++){
         //error
-        if(rand() % inverse == 0){
-            codeword[c] = !codeword[c];
+        if(rand() % inverse == 0 && (counter < max_errors || max_errors== -1) ){
+            transmitted_mesage[c] = !codeword[c];
             counter++;
-            if(counter >= max_errors && max_errors!= -1)
-                break;
         }
-        
+        else
+            transmitted_mesage[c] = codeword[c];
     }
+
     printf("added %d errors\n",counter);        
-    return;
+    return transmitted_mesage;
 }
 
 int main(int argc, char *argv[])
 {
     float error_rate= DEFAULT_ERROR_RATE;
     int max_errors = DEFAULT_MAX_ERRORS;
+    int g_flag=1;
+    int key_size=0,message_size=0;
     //check input arguments
-    if(argc<3 && argc>5){
+    if(argc<3 || argc>5){
         printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath [error rate] [max errors]\n");
         exit(1);
     }
@@ -87,10 +59,21 @@ int main(int argc, char *argv[])
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
 
+    key_size=G.n_row;
+    message_size=G.n_col;
+
+    if(G.n_col != H.n_col){
+        printf("coding and decoding matrices do not match!\n using a '0's message\n");
+        message_size=H.n_col;
+        key_size=H.n_row;
+        g_flag=0;
+    }
+
 #ifdef DEBUG
-    //TODO: have a actual big matrix G
-    //printf("G:\n");
-    //print_parity_check(G);
+    if(g_flag){
+        printf("G:\n");
+        print_parity_check(G);
+    }
 
     printf("\n");
     printf("H:\n");
@@ -99,36 +82,33 @@ int main(int argc, char *argv[])
 
 #endif
 
-    //TODO:have actual big matrix G
-    G.n_col=H.n_col;
-    G.n_row=H.n_row;
-
     srand(time(NULL));
-    int *message = generate_random_key(G.n_row);
+    int *message = generate_random_key(key_size);
 #ifdef DEBUG
     printf("message to be encoded:\n");
-    print_vector_int(message,G.n_row);
+    print_vector_int(message,key_size);
 #endif
     
-    int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
-    int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
+    int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
+    int *codeword_decoded   = (int*)calloc(message_size,sizeof(int));
+    int *transmitted_mesage;
 
 
     //ENCDODING
-    //TODO: have actual big matrix G
-    encode((int *)message, G, codeword_encoded);
+    if(g_flag)
+        encode((int *)message, G, codeword_encoded);
 
 #ifdef RESULT
-    print_vector_int(codeword_encoded, G.n_col);
+    print_vector_int(codeword_encoded, message_size);
 #endif
 
     //TRANSMISSIONs
-    add_error(codeword_encoded,G.n_col,error_rate,max_errors);
+    transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
 
 
         
 #ifdef RESULT
-    print_vector_int(codeword_encoded, G.n_col);
+    print_vector_int(transmitted_mesage, message_size);
 #endif 
     //DECODING
 #ifdef TIMES
@@ -136,16 +116,17 @@ int main(int argc, char *argv[])
 #endif
     if(H.type == 0){
 #ifndef GPU
-        decode(H, codeword_encoded, codeword_decoded,error_rate);
+        decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
-        GPU_decode(H, codeword_encoded, codeword_decoded);
+        GPU_decode(H, transmitted_mesage, codeword_decoded);
 #endif
     }
     else{
-        sparse_decode(H,codeword_encoded,codeword_decoded,error_rate);
+        sparse_decode(H,transmitted_mesage,codeword_decoded,error_rate);
     }
 
+    
 #ifdef TIMES
     clock_t clock_end = clock();
     //printf("decoding time: %ld\n",(clock_end-clock_start));
@@ -160,16 +141,30 @@ int main(int argc, char *argv[])
 
 
 #ifdef RESULT
-    print_vector_int(codeword_decoded, G.n_col);
+    print_vector_int(codeword_decoded, message_size);
 #endif
+
+    //check result
+    int correct=1;
+    for(int c=0;c<message_size;c++){
+        if(codeword_encoded[c] != codeword_decoded[c]){
+            printf("decoding is incorrect!\n");
+            correct=0;
+            break;
+        }
+    }
+    if(correct)
+        printf("decoding is correct!\n");
+
     //TODO: have actual big G matrices
-    //free_pchk(G);
+    free_pchk(G);
     free_pchk(H);
 
     free(message);
     free(codeword_encoded);
     free(codeword_decoded);
 
-    //check_possible_codewords(H);
+    if(correct)
+        return 1;
     return 0;
 }
