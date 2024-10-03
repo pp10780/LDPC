@@ -59,16 +59,17 @@ int main(int argc, char *argv[])
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
 
-    key_size=G.n_row;
-    message_size=G.n_col;
+    key_size=G.n_col;
+    message_size=G.n_row;
 
-    if(G.n_col != H.n_col){
-        printf("coding and decoding matrices do not match!\n using a '0's message\n");
-        message_size=H.n_col;
+    if(G.n_row != H.n_col){
+           message_size=H.n_col;
         key_size=H.n_row;
         g_flag=0;
-    }
+        printf("coding and decoding matrices do not match!\nusing a '0's message with size:%d\n",message_size);
 
+    }
+	
 #ifdef DEBUG
     if(g_flag){
         printf("G:\n");
@@ -83,10 +84,10 @@ int main(int argc, char *argv[])
 #endif
 
     srand(time(NULL));
-    int *message = generate_random_key(key_size);
-#ifdef DEBUG
-    printf("message to be encoded:\n");
-    print_vector_int(message,key_size);
+    int *key = generate_random_key(key_size);
+#ifdef RESULT
+    printf("key to be encoded:\n");
+    print_vector_int(key,key_size);
 #endif
     
     int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
@@ -96,18 +97,18 @@ int main(int argc, char *argv[])
 
     //ENCDODING
     if(g_flag)
-        encode((int *)message, G, codeword_encoded);
+        encode((int *)key, G, codeword_encoded);
 
 #ifdef RESULT
+    printf("encoded message:\n");
     print_vector_int(codeword_encoded, message_size);
 #endif
 
     //TRANSMISSIONs
     transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
-
-
         
 #ifdef RESULT
+    printf("transmitted message:\n");
     print_vector_int(transmitted_mesage, message_size);
 #endif 
     //DECODING
@@ -160,9 +161,9 @@ int main(int argc, char *argv[])
     free_pchk(G);
     free_pchk(H);
 
-    free(message);
+    free(key);
     free(codeword_encoded);
-    free(codeword_decoded);
+    //free(codeword_decoded);
 
     if(correct)
         return 1;

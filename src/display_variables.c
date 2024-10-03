@@ -34,8 +34,7 @@ void print_matrix_int(int** matrix, int rows, int cols)
 void print_parity_check(pchk mat){
     if(mat.type == 0){
         //normal
-        for (int i = 0; i < mat.n_row; i++)
-        {
+        for (int i = 0; i < mat.n_row; i++){
             printf("[ ");
             for (int j = 0; j < mat.n_col; j++)
                 printf("%d ", mat.A[i][j]);

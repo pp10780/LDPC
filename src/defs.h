@@ -1,7 +1,7 @@
 #ifndef DEF
     #define DEF
 
-    #define MAX_ITERATIONS 400
+    #define MAX_ITERATIONS 20
 
     #define BSC_MODE 0
     #define AWGN_MODE 1
@@ -20,7 +20,7 @@
     } pchk;
 
     //#define GPU
-    //#define DEBUG
+    #define DEBUG
     //#define TIMES
     #define RESULT
 #endif
