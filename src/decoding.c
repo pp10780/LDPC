@@ -240,10 +240,9 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
         Update_M(H,M,L,extrinsic_probabilities);
     }
 
-#ifdef RESULT
     if(try_n == MAX_ITERATIONS)
         printf("Not completed after %d iterations\n", try_n);  
-#endif
+
     codeword_decoded = NULL;
 
     free(probabilities);
