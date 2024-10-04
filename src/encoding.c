@@ -16,8 +16,8 @@ void encode(int *key, pchk generator, int *message)
     else{
         //sparse
         for(int r=0;r<generator.n_row;r++){
-            for (int j = generator.A[1][r]; j <  generator.A[1][r+1]; j++)
-                message[generator.A[0][j]] ^= key[j];
+            for (int c = generator.A[1][r]; c <  generator.A[1][r+1]; c++)
+                message[r] ^= key[ generator.A[0][c] ];
         }
             
     }
