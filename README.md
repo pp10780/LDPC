@@ -95,37 +95,8 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
--implementar GPU
-    > get make file correctly
-        -make "hello world" on GPU
-        -checkout previous implementations
-        -make sure header files are working has intended
-    >memory init: test this
-        -ver como escrever na memória "outra vez"
-        -ver se vale a pena escrever m na memoria ou só escrever r
-        -H
-        -E
-        -M
-        -L
-        -z
-        -r
-        -m?
-    >kernel 0 init: test this
-        -get r from m
-        -init L to 0
-    >kernel 1 M + E: test this
-        -compute M
-        -compute LE
-        -compute E
-    >kernel 2 L: test this
-        -compute L
-        -compute z
-    >kernel 3 early termination: (do this later has no resutls really exist so far)
-        -get flag from H and z
+-makefile GPU a funcionar
+-test if it works
+-get iteration times for different matrices
 
--implementar um sistema de ficheiros melhor que txt
-    >fazer um programa para escrever novas matrizes (vou usar o test entretanto)
--limpeza de código
-    >juntar os dois ficheiros de decoding (sparse e normal) se for possível/útil
-        -neste momento parece não ser útil juntar
 
