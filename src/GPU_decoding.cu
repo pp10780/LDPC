@@ -24,7 +24,7 @@ __global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float
 
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
-__global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E, float *L, int *z){
+__global__ void GPU_row_wise(int n_row, int n_col, int *H, float *M, float* E, float *L, int *z, int *d_check){
 
     float LE = 1; //row value used to compute E
     int j = blockIdx.x * blockDim.x + threadIdx.x;
@@ -109,7 +109,7 @@ __global__ void early_termination(int n_row, int n_col, int *H, int *z, int *d_c
 
 // Function to decode the message
 extern "C"
-void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
+void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded, float error_rate){
 #ifdef TIMES
     float time;
     cudaEvent_t start, stop;
@@ -134,7 +134,7 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
     int cw_blocks=H.n_row/threads_per_block + 1;
     int MAX_ITERATION = 10;
 
-    float init_prob=log((1 - BSC_ERROR_RATE)/BSC_ERROR_RATE);
+    float init_prob=log((1 - error_rate)/error_rate);
 
     //decoding matrix
     int *dH;
@@ -192,7 +192,7 @@ void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded){
         //set early termination do occur
         cudaMemset(d_check,1,sizeof(int));
         //kernel 1:
-        GPU_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, M, E, L, z);
+        GPU_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, M, E, L, z, d_check);
         cudaDeviceSynchronize();
 
         //kernel 2:
