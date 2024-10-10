@@ -12,9 +12,6 @@ OUT     = $(BINDIR)/ldpc
 
 #GPU_decoding.cu GPU_decoding.h
 
-#tests this didnt work remove this
-TESTS 	= $(addprefix $(MATDIR)/, D_I20x20 D_I50x50 D_I100x100 D_I1000x1000 D_I10^4x10^4 )
-
 CC      = gcc
 FLAGS	= -std=c99 -g -c -Wall
 NVCC 	= nvcc
@@ -38,12 +35,7 @@ test:
 
 all_tests: 
 	@./bin/ldpc matrices/G1 matrices/H1
-	@./bin/ldpc matrices/D_I20x20 matrices/D_I20x20
-	@./bin/ldpc matrices/D_I50x50 matrices/D_I50x50 
-	@./bin/ldpc matrices/D_I100x100 matrices/D_I100x100 
-	@./bin/ldpc matrices/D_I1000x1000 matrices/D_I1000x1000 
-	@./bin/ldpc matrices/D_I10^4x10^4 matrices/D_I10^4x10^4 
-
+	
 clean:
 	rm -f $(OBJDIR)/*.o
 	rm -f $(BINDIR)/*

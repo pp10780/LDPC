@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <time.h>
 
-
+/*
 extern "C" {
 #include "GPU_decoding.h"
 #include "defs.h"
 }
-
+*/
 //kernel 0: innit -> compute r and Li from m
 __global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
@@ -108,7 +108,6 @@ __global__ void early_termination(int n_row, int n_col, int *H, int *z, int *d_c
 }
 
 // Function to decode the message
-extern "C"
 void GPU_decode(pchk H, int *recv_codeword, int *codeword_decoded, float error_rate){
 #ifdef TIMES
     float time;
