@@ -100,3 +100,75 @@ depois pega na terceira linha e da xor das duas
 -get iteration times for different matrices
 
 
+
+
+gcc -std=c99 -g -c -Wall src/main.c -o obj/main.o
+gcc -std=c99 -g -c -Wall src/decoding.c -o obj/decoding.o
+gcc -std=c99 -g -c -Wall src/encoding.c -o obj/encoding.o
+gcc -std=c99 -g -c -Wall src/display_variables.c -o obj/display_variables.o
+gcc -std=c99 -g -c -Wall src/storage.c -o obj/storage.o
+gcc -std=c99 -g -c -Wall src/sparse_decoding.c -o obj/sparse_decoding.o
+nvcc -O3 -m64 -c src/GPU_decoding.cu -o obj/GPU_decoding.o
+gcc -g obj/main.o obj/decoding.o obj/encoding.o obj/display_variables.o obj/storage.o obj/sparse_decoding.o obj/GPU_decoding.o -o bin/ldpc  -lm
+obj/GPU_decoding.o: In function `early_termination(int, int, int*, int*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xe7): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x140): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `GPU_row_wise(int, int, int*, float*, float*, float*, int*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x269): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x2c6): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `GPU_column_wise(int, int, int*, float*, float*, float*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x3d9): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x436): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `GPU_apriori_probabilities(int, float, int*, float*, float*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x519): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x570): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `GPU_decode(Pchk, int*, int*, float)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x756): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x766): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x776): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x788): undefined reference to `cudaMemset'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7a1): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7b1): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7c1): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7d1): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7e3): undefined reference to `cudaMalloc'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x7fa): undefined reference to `cudaMemset'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x814): undefined reference to `cudaMemcpy'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x830): undefined reference to `cudaMemcpy'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x8a0): undefined reference to `__cudaPushCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x9a5): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x9b2): undefined reference to `cudaDeviceSynchronize'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x9cc): undefined reference to `cudaDeviceSynchronize'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x9ec): undefined reference to `cudaMemset'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xa39): undefined reference to `__cudaPushCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xb95): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xba2): undefined reference to `cudaDeviceSynchronize'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xbf0): undefined reference to `__cudaPushCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xd3a): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xdae): undefined reference to `cudaLaunchKernel'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xdb3): undefined reference to `cudaDeviceSynchronize'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xdda): undefined reference to `cudaMemcpy'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xe55): undefined reference to `cudaLaunchKernel'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xea4): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `__device_stub__Z25GPU_apriori_probabilitiesifPiPfS0_(int, float, int*, float*, float*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xf61): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0xfac): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `__device_stub__Z12GPU_row_wiseiiPiPfS0_S0_S_S_(int, int, int*, float*, float*, float*, int*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x10a1): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x10ec): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `__device_stub__Z15GPU_column_wiseiiPiPfS0_S0_S_(int, int, int*, float*, float*, float*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x11d1): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x121c): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `__device_stub__Z17early_terminationiiPiS_S_(int, int, int*, int*, int*)':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x12df): undefined reference to `__cudaPopCallConfiguration'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x1324): undefined reference to `cudaLaunchKernel'
+obj/GPU_decoding.o: In function `__cudaUnregisterBinaryUtil()':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text+0x13): undefined reference to `__cudaUnregisterFatBinary'
+obj/GPU_decoding.o: In function `__sti____cudaRegisterAll()':
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0xb): undefined reference to `__cudaRegisterFatBinary'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0x64): undefined reference to `__cudaRegisterFunction'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0xa5): undefined reference to `__cudaRegisterFunction'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0xe6): undefined reference to `__cudaRegisterFunction'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0x127): undefined reference to `__cudaRegisterFunction'
+tmpxft_00003603_00000000-5_GPU_decoding.cudafe1.cpp:(.text.startup+0x133): undefined reference to `__cudaRegisterFatBinaryEnd'
+collect2: error: ld returned 1 exit status

@@ -12,10 +12,10 @@ OUT     = $(BINDIR)/ldpc
 
 #GPU_decoding.cu GPU_decoding.h
 
-CC      = gcc
+CC      = g++
 FLAGS	= -std=c99 -g -c -Wall
 NVCC 	= nvcc
-CUFLAGS	= -O3 -m64 -c
+CUFLAGS	= -O3 -m64 -O3 -m64 --gpu-architecture compute_61
 MATH    = -lm
 
 #COMPILING RULES

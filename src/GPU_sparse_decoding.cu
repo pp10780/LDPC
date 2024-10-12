@@ -197,75 +197,101 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded){
 }
 
 
-
 //REMOVE : FOR TESTING PURPOSES ONLY!
-/*
-void **get_matrix_from_file(pchk *matrix,char *filename){
-    FILE *f = fopen (filename,"r");
 
-    //Open file to read
-    if(f==NULL){
-        printf("couldn't open matrix file %s\n",filename);
-        exit(1);
-    }    
+int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
+    int inverse=(1/error_rate),counter=0;
+    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));;
 
-    //matrix info
-    fread(&(matrix->n_row),sizeof(int),1,f);
-    fread(&(matrix->n_col),sizeof(int),1,f);
-    fread(&(matrix->type),sizeof(int),1,f);
-    
-    if(matrix->type ==0){
-        //normal
-        matrix->A = (int**)malloc(matrix->n_row*sizeof(int*));
-        for(int r=0;r<matrix->n_row;r++){
-            matrix->A[r] = (int*)malloc(matrix->n_col*sizeof(int));
-            fread(matrix->A[r],sizeof(int),matrix->n_col,f);
+    for(int c=0;c<codeword_size;c++){
+        //error
+        if(rand() % inverse == 0 && (counter < max_errors || max_errors== -1) ){
+            transmitted_mesage[c] = !codeword[c];
+            counter++;
         }
+        else
+            transmitted_mesage[c] = codeword[c];
     }
-    else{
-        //sparse
-        matrix->A    = (int**)malloc(2                 *sizeof(int*));
-        matrix->A[0] = (int *)malloc(matrix->type      *sizeof(int ));
-        matrix->A[1] = (int *)malloc((matrix->n_row+1 )*sizeof(int ));
 
-        
-        fread(matrix->A[0],sizeof(int),matrix->type,f);
-        fread(matrix->A[1],sizeof(int),matrix->n_row+1,f);
-    }
-    fclose(f);
-    return NULL;
+    printf("added %d errors\n",counter);        
+    return transmitted_mesage;
 }
 
-void print_vector_int(int vector[], int len)
+int main(int argc, char *argv[])
 {
-    printf("[ ");
-    for (int i = 0; i < len; i++)
-        printf("%d ", vector[i]);
-    printf("]\n");
-}
-
- int main(int argc, char *argv[]){
+    float error_rate= DEFAULT_ERROR_RATE;
+    int max_errors = DEFAULT_MAX_ERRORS;
+    int g_flag=1;
+    int key_size=0,message_size=0;
     //check input arguments
-    if(argc!=3){
-        printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath\n");
+    if(argc<3 || argc>5){
+        printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath [error rate] [max errors]\n");
         exit(1);
     }
+    if(argc>3)
+        error_rate=atof(argv[3]);
+    if(argc>4)
+        max_errors=atoi(argv[4]);
 
     //get parity check matrices from file
     pchk H,G;
     get_matrix_from_file(&G,argv[1]);
     get_matrix_from_file(&H,argv[2]);
+
+    key_size=G.n_col;
+    message_size=G.n_row;
+
+    if(G.n_row != H.n_col){
+           message_size=H.n_col;
+        key_size=H.n_row;
+        g_flag=0;
+        printf("coding and decoding matrices do not match!\nusing a '0's message with size:%d\n",message_size);
+
+    }
+
+    srand(time(NULL));
+    //int *key = generate_random_key(key_size);
+    int *key=(int *)calloc(size,sizeof(int));
     
-    printf("filename:");
-    printf(argv[2]);
-    printf("\n");
+    int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
+    int *codeword_decoded   = (int*)calloc(message_size,sizeof(int));
+    int *transmitted_mesage;
 
-    int *codeword_encoded = (int*)calloc(G.n_col,sizeof(int));
+    GPU_decode(H, transmitted_mesage, codeword_decoded);
+    //ENCDODING
+    //if(g_flag)
+    //    encode((int *)key, G, codeword_encoded);
 
-    int *codeword_decoded = (int*)calloc(G.n_col,sizeof(int));
+    //TRANSMISSIONs
+    transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
+    
+#ifdef TIMES
+    clock_t clock_end = clock();
+    //printf("decoding time: %ld\n",(clock_end-clock_start));
+    printf(" %ld\n",(clock_end-clock_start));
 
-    codeword_encoded[0] = 1 ;
+#endif
 
-    GPU_decode(H, codeword_encoded, codeword_decoded);
- }
- */
+    //check result
+    int correct=1;
+    for(int c=0;c<message_size;c++){
+        if(codeword_encoded[c] != codeword_decoded[c]){
+            printf("decoding is incorrect!\n");
+            correct=0;
+            break;
+        }
+    }
+    if(correct)
+        printf("decoding is correct!\n");
+
+    free_pchk(G);
+    free_pchk(H);
+
+    free(key);
+    free(codeword_encoded);
+    free(codeword_decoded);
+
+    if(correct)
+        return 1;
+    return 0;
+}
