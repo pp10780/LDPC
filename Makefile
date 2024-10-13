@@ -15,7 +15,7 @@ OUT     = $(BINDIR)/ldpc
 CC      = g++
 FLAGS	= -std=c99 -g -c -Wall
 NVCC 	= nvcc
-CUFLAGS	= -O3 -m64 -O3 -m64 --gpu-architecture compute_61
+CUFLAGS	= -O3 -m64 --gpu-architecture compute_61
 MATH    = -lm
 
 #COMPILING RULES

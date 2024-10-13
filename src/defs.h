@@ -21,6 +21,6 @@
 
     //#define GPU
     //#define DEBUG
-    //#define TIMES
-    //#define RESULT
+    #define TIMES
+    #define RESULT
 #endif

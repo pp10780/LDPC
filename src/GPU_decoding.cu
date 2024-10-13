@@ -2,12 +2,7 @@
 #include <time.h>
 #include "defs.h"
 
-/*
-extern "C" {
-#include "GPU_decoding.h"
-#include "defs.h"
-}
-*/
+
 //kernel 0: innit -> compute r and Li from m
 __global__ void GPU_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
@@ -247,6 +242,65 @@ int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     return transmitted_mesage;
 }
 
+void **get_matrix_from_file(pchk *matrix,char *filename){
+    FILE *f = fopen (filename,"r");
+
+    //Open file to read
+    if(f==NULL){
+        printf("couldn't open matrix file %s\n",filename);
+        exit(1);
+    }    
+
+    //matrix info
+    fread(&(matrix->n_row),sizeof(int),1,f);
+    fread(&(matrix->n_col),sizeof(int),1,f);
+    fread(&(matrix->n_elements),sizeof(int),1,f);
+    fread(&(matrix->type),sizeof(int),1,f);
+
+    if(matrix->type ==0){
+        //normal
+        matrix->A = (int**)malloc(matrix->n_row*sizeof(int*));
+        for(int r=0;r<matrix->n_row;r++){
+            matrix->A[r] = (int*)malloc(matrix->n_col*sizeof(int));
+            fread(matrix->A[r],sizeof(int),matrix->n_col,f);
+        }
+    }
+    else{
+        //sparse
+        matrix->A    = (int**)malloc(2                 *sizeof(int*));
+        matrix->A[0] = (int *)malloc(matrix->n_elements*sizeof(int ));
+        matrix->A[1] = (int *)malloc((matrix->n_row+1 ) *sizeof(int ));
+
+        fread(matrix->A[0],sizeof(int),matrix->n_elements,f);
+        fread(matrix->A[1],sizeof(int),matrix->n_row+1,f);
+    }
+    fclose(f);
+    return NULL;
+}
+
+void dense_free_pchk(pchk mat){
+    for(int i=0;i<mat.n_row;i++)
+            free(mat.A[i]);
+    free(mat.A);
+}
+
+void sparse_free_pchk(pchk mat){
+    free(mat.A[0]);
+    free(mat.A[1]);
+    free(mat.A);
+}
+
+
+void free_pchk(pchk mat){
+    switch(mat.type){
+        case 0://dense
+            dense_free_pchk(mat);
+            break;
+        default://sparse
+            sparse_free_pchk(mat);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     float error_rate= DEFAULT_ERROR_RATE;
@@ -281,24 +335,35 @@ int main(int argc, char *argv[])
 
     srand(time(NULL));
     //int *key = generate_random_key(key_size);
-    int *key=(int *)calloc(size,sizeof(int));
+    int *key=(int *)calloc(key_size,sizeof(int));
     
     int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
     int *codeword_decoded   = (int*)calloc(message_size,sizeof(int));
     int *transmitted_mesage;
 
-    GPU_decode(H, transmitted_mesage, codeword_decoded);
-    //ENCDODING
-    //if(g_flag)
-    //    encode((int *)key, G, codeword_encoded);
-
-    //TRANSMISSIONs
-    transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
     
+    //ENCDODING
+    if(g_flag){
+        printf("encoding\n");
+        //encode((int *)key, G, codeword_encoded);
+    }
+
+   
+
+    //TRANSMISSION
+    transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
+
+#ifdef TIMES
+    clock_t clock_start = clock();
+#endif
+
+    //DECODING
+    GPU_decode(H, transmitted_mesage, codeword_decoded, error_rate);
+
 #ifdef TIMES
     clock_t clock_end = clock();
-    //printf("decoding time: %ld\n",(clock_end-clock_start));
-    printf(" %ld\n",(clock_end-clock_start));
+    printf("decoding time: %ld\n",(clock_end-clock_start));
+    //printf(" %ld\n",(clock_end-clock_start));
 
 #endif
 
