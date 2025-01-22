@@ -97,5 +97,5 @@ depois pega na terceira linha e da xor das duas
 
 -makefile GPU a funcionar
 -get iteration times for different matrices
--there was a error when computing L (E squished)
 -test the new col-wise kernel
+-fix CL_NV_DEVICE_WARP_SIZE not working

@@ -36,7 +36,7 @@ $(OUT): $(OBJS)
 gpu: 
 	nvcc -O3 -m64 --gpu-architecture compute_61 src/GPU_sparse_decoding.cu -o bin/GPU_sparse
 test: 
-	./bin/GPU_sparse matrices/G1 matrices/H1
+	./bin/GPU_sparse matrices/G1 matrices/H1 0.1
 
 tests: 
 	@echo =====1000=====
