@@ -8,7 +8,7 @@
 
     #define CURR_MODE BSC_MODE
 
-    #define DEFAULT_ERROR_RATE 0.2
+    #define DEFAULT_ERROR_RATE 0.005
     #define DEFAULT_MAX_ERRORS -1 //this means no max
 
     typedef struct Pchk{
@@ -20,7 +20,7 @@
     } pchk;
 
     //#define GPU
-    //#define DEBUG
-    #define TIMES
-    #define RESULT
+    #define DEBUG
+    //#define TIMES
+    //#define RESULT
 #endif

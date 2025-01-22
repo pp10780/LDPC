@@ -60,7 +60,7 @@ void scompute_extrinsic(pchk H,float *M, float *E,float *LE, float *L,float *r, 
             p = LE[j] / tanh(M[i]/2);
             E[i] = log((1+p)/(1-p));
 
-            L[ H.A[0][i]  ] += E[i];
+            L[ H.A[0][i] ] += E[i];
         }
     }
 

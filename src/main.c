@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include <time.h>
+
 #include "encoding.h"
 #include "decoding.h"
 #include "display_variables.h"
@@ -8,13 +10,14 @@
 #include "sparse_decoding.h"
 
 #ifdef GPU
-#include "GPU_decoding.cu"
+#include "GPU_decoding.h"
 #endif
 
 int *generate_random_key(int size){
     int *key=(int *)malloc(size*sizeof(int));
+    int i;
 
-    for(int i=0;i<size;i++)
+    for(i=0;i<size;i++)
         key[i] = rand()%2;
 
     return key;
@@ -23,8 +26,9 @@ int *generate_random_key(int size){
 int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     int inverse=(1/error_rate),counter=0;
     int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));;
+    int c;
 
-    for(int c=0;c<codeword_size;c++){
+    for(c=0;c<codeword_size;c++){
         //error
         if(rand() % inverse == 0 && (counter < max_errors || max_errors== -1) ){
             transmitted_mesage[c] = !codeword[c];
@@ -38,8 +42,7 @@ int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     return transmitted_mesage;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     float error_rate= DEFAULT_ERROR_RATE;
     int max_errors = DEFAULT_MAX_ERRORS;
     int g_flag=1;
@@ -111,16 +114,20 @@ int main(int argc, char *argv[])
     printf("transmitted message:\n");
     print_vector_int(transmitted_mesage, message_size);
 #endif 
-    //DECODING
+   
 #ifdef TIMES
-    clock_t clock_start = clock();
+    struct timespec clock_begin, clock_end;
+    clock_gettime(CLOCK_REALTIME, &clock_begin);
 #endif
+
+
+    //DECODING
     if(H.type == 0){
 #ifndef GPU
         decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
-        GPU_decode(H, transmitted_mesage, codeword_decoded);
+        GPU_sparse_decode(H, transmitted_mesage, codeword_decoded);
 #endif
     }
     else{
@@ -129,10 +136,11 @@ int main(int argc, char *argv[])
 
     
 #ifdef TIMES
-    clock_t clock_end = clock();
-    //printf("decoding time: %ld\n",(clock_end-clock_start));
-    printf(" %ld\n",(clock_end-clock_start));
-
+    clock_gettime(CLOCK_REALTIME, &clock_end);
+    long seconds = clock_end.tv_sec - clock_begin.tv_sec;
+    long nanoseconds = clock_end.tv_nsec - clock_begin.tv_nsec;
+    double elapsed = seconds + nanoseconds*1e-9;
+    printf("decoding time: %f\n",elapsed);
 #endif
 
     if(codeword_decoded == NULL){
@@ -147,7 +155,8 @@ int main(int argc, char *argv[])
 
     //check result
     int correct=1;
-    for(int c=0;c<message_size;c++){
+    int c;
+    for(c=0;c<message_size;c++){
         if(codeword_encoded[c] != codeword_decoded[c]){
             printf("decoding is incorrect!\n");
             correct=0;
@@ -157,15 +166,15 @@ int main(int argc, char *argv[])
     if(correct)
         printf("decoding is correct!\n");
 
-    //TODO: have actual big G matrices
     free_pchk(G);
     free_pchk(H);
 
     free(key);
     free(codeword_encoded);
-    //free(codeword_decoded);
+    free(transmitted_mesage);
+    free(codeword_decoded);
 
     if(correct)
-        return 1;
+        return 0;
     return 0;
 }

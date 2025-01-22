@@ -1,21 +1,18 @@
 #include <stdio.h>
 #include <time.h>
 
-
-extern "C" {
 #include "GPU_decoding.h"
 #include "defs.h"
-}
 
 //kernel 0: innit -> compute r and Li from m
-//this is the same as sparse implementation
+//this is the same as cpu implementation
 __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(index > n_col)
         return;
-    //TODO:this could be fancier by just changing the signal bit according to the data bit 
+
     float r_val=(m[index]==0) ? llr_i : -llr_i;
 
     //write to global memory
@@ -28,8 +25,9 @@ __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m
 __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float *M, float* E, float *L, int *z, int *d_check){
 
     float LE = 1; //row value used to compute E
-    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.x * blockDim.x + threadIdx.x; //the thread's assigned row
     int check=0;
+    float M_val,p;
     
     if(j > n_row)
         return;
@@ -40,7 +38,7 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
         //early termination check (this is being done in parallel)
         check ^= z[H[i]];
 
-        float M_val = L[H[i]] - E[i];
+        M_val = L[H[i]] - E[i];
 
         //store row value
         LE *= tanh(M_val/2);
@@ -51,7 +49,7 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
     //do full row for E [second recursion]
     for (int i=Hi[j];i<Hi[j+1];i++){
         //exclude corresponding element from row
-        float p = LE/(tanh(M[i]/2) );
+        p = LE/(tanh(M[i]/2) );
         E[i] = log((1+p)/(1-p));
     }
 
@@ -60,25 +58,75 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
         *d_check=0;
 }
 
+/*
 //kernel 2: column wise -> compute L and z from E and r
 __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float* E, float* r,float *L, int *z){
-    int i = (blockIdx.x * blockDim.x + threadIdx.x);
+    int i = (blockIdx.x * blockDim.x + threadIdx.x);//the thread's assigned column
     float L_val;//only write to global memory in the end
 
     if(i > n_col)
         return;
     
     L_val=r[i];
-    //go through E column wise -> this is terrebly inefficient in csr can't find anyone doing it different still in csr
-    //going column wise means going through the whole matrix H and if the index the corresponding column it is part of the column
+    //going column wise means going through the whole matrix H and if the index is the corresponding column then the element is part of the column
     for(int si=0; si<n_elements ; si++){
         if(H[si]==i)
-            L_val+=E[i];
+            L_val+=E[si];
     }
 
     L[i] = L_val;
     z[i] = (L_val < 0) ? 1 : 0;;
 }
+*/
+
+//kernel 2: column wise using shared memory -> compute L and z from E and r
+__global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float* E, float* r,float *L, int *z){
+    int i = (blockIdx.x * blockDim.x + threadIdx.x);//the thread's assigned column
+    int block_start = blockIdx.x * blockDim.x; //first column of the block (column for thread 0)
+
+    //this stopped compiling with blockDim.x so I replaced it by 32 which is what it's going to be
+    //__shared__ float b_L_val[blockDim.x]; //place where he L_cal is stored (each slot represents 1 column)
+    //float t_L_val[blockDim.x];
+    __shared__ float b_L_val[32];
+    float t_L_val[32];
+
+    //initiate thread memory
+    for(int t=0;t<blockDim.x;t++)
+        t_L_val[threadIdx.x]=0;
+
+    //initiate shared memory
+    if(i < n_col)
+        b_L_val[threadIdx.x]=r[i];
+    __syncthreads();
+
+    //the whole matrix is split into each thread of the block
+    //this needs to be rounded up so every element is present (later it will be verified if it goes over)
+    int elements_per_thread = (n_elements+blockDim.x-1)/blockDim.x;
+    
+    //go through E column-wise only 1 block
+    for(int si=elements_per_thread*threadIdx.x ; si<n_elements && si<elements_per_thread*(threadIdx.x+1); si++){
+        if( 0 < H[si]-block_start  || H[si]-block_start < blockDim.x )
+            t_L_val[H[si]-block_start]+=E[si];
+    }
+
+    //go through the shared memory in a round robin to get the full value of L
+    int current;
+    for(int t=0;t<blockDim.x;t++){
+        current=threadIdx.x+t;
+        if(current<blockDim.x)
+            current-=blockDim.x;
+        b_L_val[current]+=t_L_val[current];
+        __syncthreads();
+    }
+
+    //up until this point "extra" threads were being used for the shared memory so they will now be purged
+    if(i > n_col)
+        return;
+        
+    L[i] = b_L_val[threadIdx.x];
+    z[i] = (b_L_val[threadIdx.x] < 0) ? 1 : 0;;
+}
+
 
 // Function to decode the message
 void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float error_rate){
@@ -95,10 +143,9 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     
     //TODO: this is temporary I still need to calculate the number of blocks required and set the number of threads per block in defs
     int threads_per_block=32;//CL_NV_DEVICE_WARP_SIZE (not working for some reason)
-    //TODO: make this better
-    int rw_blocks=H.n_col/threads_per_block + 1;
-    int cw_blocks=H.n_row/threads_per_block + 1;
-    int MAX_ITERATION = 10;
+    int rw_blocks=(H.n_col +threads_per_block -1)/threads_per_block;
+    int cw_blocks=(H.n_row +threads_per_block -1)/threads_per_block;
+    int MAX_ITERATION = 100;
 
     float init_prob=log((1 - error_rate)/error_rate);
 
@@ -111,9 +158,10 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     //computation matrices
     float *M,*E;
     cudaMalloc((void **)&M, H.n_elements * sizeof(float));
-    cudaMalloc((void **)&E,H.n_elements * sizeof(float));
+    cudaMalloc((void **)&E, H.n_elements * sizeof(float));
     //E needs to be set at 0 at the start
-    cudaMemset(M,0,H.n_elements  * sizeof(int));
+    //TODO:this is not working!
+    //cudaMemset(E,0,H.n_elements  * sizeof(int));
 
     //vectors
     float *r,*L;
@@ -137,7 +185,7 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
-    printf(" memory initialization time:%3.3f\n",time*1000);
+    printf(" memory initialization time:%3.3f \n",time*1000);
     //printf(" %ld",(clock_end-clock_start));
     cudaEventRecord(start, 0);
 #endif
@@ -160,22 +208,18 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     for (try_n = 0; try_n<MAX_ITERATION; try_n++){
         //set early termination do occur
         cudaMemset(d_check,1,sizeof(int));
-        //kernel 1:
+        //kernel 1:                                        
         GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, M, E, L, z, d_check);
         cudaDeviceSynchronize();
 
         //kernel 2:
         GPU_sparse_column_wise<<<cw_blocks, threads_per_block>>>(H.n_elements, H.n_col, dH, E, r, L, z);
-        
-        if (check==1 && try_n!=0)
-            break;
-        
-        cudaDeviceSynchronize();
 
-        //kernel 3: -> this was merged into kernel 1
-        //early_termination<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, z, d_check);
-        //cudaDeviceSynchronize();
-        //cudaMemcpy(&check,d_check,1*sizeof(int),cudaMemcpyDeviceToHost);
+        //TESTING : this is here to measure a certain number of iterations
+        //if (check==1 && try_n!=0)
+        //    break;
+
+        cudaDeviceSynchronize();
         
     }
 
@@ -186,7 +230,7 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
-    printf(" %d iterations time:%3.3f\n",try_n,time*1000);
+    printf(" %d iterations time:%3.3f ",try_n,time*1000);
     //printf(" %ld",(clock_end-clock_start));
     cudaEventRecord(start, 0);
 #endif
@@ -194,13 +238,22 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
     return ;
 }
 
+//REMOVE : FOR TESTING PURPOSES ONLY!
+//REMOVE : FOR TESTING PURPOSES ONLY!
 
-//REMOVE : FOR TESTING PURPOSES ONLY!
-//REMOVE : FOR TESTING PURPOSES ONLY!
+int *generate_random_key(int size){
+    int *key=(int *)malloc(size*sizeof(int));
+    int i;
+
+    for(i=0;i<size;i++)
+        key[i] = rand()%2;
+
+    return key;
+}
 
 int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     int inverse=(1/error_rate),counter=0;
-    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));;
+    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));
 
     for(int c=0;c<codeword_size;c++){
         //error
@@ -229,7 +282,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     fread(&(matrix->n_row),sizeof(int),1,f);
     fread(&(matrix->n_col),sizeof(int),1,f);
     fread(&(matrix->n_elements),sizeof(int),1,f);
-    fread(&(matrix->n_elements),sizeof(int),1,f);
+    fread(&(matrix->type),sizeof(int),1,f);
 
     if(matrix->type ==0){
         //normal
@@ -275,8 +328,30 @@ void free_pchk(pchk mat){
     }
 }
 
-int main(int argc, char *argv[])
+// Function to encode the key
+void encode(int *key, pchk generator, int *message)
 {
+    if(generator.type == 0){
+        //normal
+        for(int row = 0; row < generator.n_row; row++){
+            for(int col = 0; col < generator.n_col; col++){
+                if(generator.A[row][col]==1)
+                    message[row] ^= key[col];
+            }
+        }
+    }
+    else{
+        //sparse
+        for(int r=0;r<generator.n_row;r++){
+            for (int c = generator.A[1][r]; c <  generator.A[1][r+1]; c++)
+                message[r] ^= key[ generator.A[0][c] ];
+        }
+            
+    }
+
+}
+
+int main(int argc, char *argv[]){
     float error_rate= DEFAULT_ERROR_RATE;
     int max_errors = DEFAULT_MAX_ERRORS;
     int g_flag=1;
@@ -308,42 +383,46 @@ int main(int argc, char *argv[])
     }
 
     srand(time(NULL));
-    //int *key = generate_random_key(key_size);
-    int *key=(int *)calloc(key_size,sizeof(int));
+    int *key = generate_random_key(key_size);
     
     int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
     int *codeword_decoded   = (int*)calloc(message_size,sizeof(int));
     int *transmitted_mesage;
 
-    
+
     //ENCDODING
-    if(g_flag){
-        printf("encoding\n");
-        //encode((int *)key, G, codeword_encoded);
-    }
+    if(g_flag)
+        encode((int *)key, G, codeword_encoded);
 
-   
-
-    //TRANSMISSION
+    //TRANSMISSIONs
     transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
-
-#ifdef TIMES
-    clock_t clock_start = clock();
-#endif
-
+        
     //DECODING
-    GPU_sparse_decode(H, transmitted_mesage, codeword_decoded, error_rate);
-
 #ifdef TIMES
-    clock_t clock_end = clock();
-    printf("decoding time: %ld\n",(clock_end-clock_start));
-    //printf(" %ld\n",(clock_end-clock_start));
-
+    struct timespec clock_begin, clock_end;
+    clock_gettime(CLOCK_REALTIME, &clock_begin);
 #endif
+
+    GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
+
+    
+#ifdef TIMES
+    clock_gettime(CLOCK_REALTIME, &clock_end);
+    long seconds = clock_end.tv_sec - clock_begin.tv_sec;
+    long nanoseconds = clock_end.tv_nsec - clock_begin.tv_nsec;
+    double elapsed = seconds + nanoseconds*1e-9;
+    printf("decoding time: %f\n",elapsed);
+#endif
+
+    if(codeword_decoded == NULL){
+        printf("Not a valid codeword\n");
+        return 0;
+    }
 
     //check result
     int correct=1;
-    for(int c=0;c<message_size;c++){
+    int c;
+    for(c=0;c<message_size;c++){
         if(codeword_encoded[c] != codeword_decoded[c]){
             printf("decoding is incorrect!\n");
             correct=0;
@@ -358,9 +437,9 @@ int main(int argc, char *argv[])
 
     free(key);
     free(codeword_encoded);
-    free(codeword_decoded);
+    //free(codeword_decoded);
 
     if(correct)
-        return 1;
+        return 0;
     return 0;
 }
