@@ -20,7 +20,6 @@ __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m
     L[index] = r_val;
 }
 
-
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
 __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float *M, float* E, float *L, int *z, int *d_check){
 
@@ -118,9 +117,6 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     int i = (blockIdx.x * blockDim.x + threadIdx.x);//the thread's assigned column
     int block_start = blockIdx.x * blockDim.x; //first column of the block (column for thread 0)
 
-    //this stopped compiling with blockDim.x so I replaced it by 32 which is what it's going to be
-    //__shared__ float b_L_val[blockDim.x]; //place where he L_cal is stored (each slot represents 1 column)
-    //float t_L_val[blockDim.x];
     __shared__ float b_L_val[32];
     float t_L_val[32];
 
@@ -174,14 +170,15 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
 #endif
 
 #ifdef DEBUG
-    float *matrix_debug_print=(float *)malloc(H.n_elements*sizeof(float));
-    float *vector_debug_print=(float *)malloc(H.n_col*sizeof(float));
+    float   *matrix_debug_print=(float *)malloc(H.n_elements*sizeof(float));
+    float   *vector_debug_print=(float *)malloc(H.n_col*sizeof(float));
+    int     *index_debug_print=(int   *)malloc(H.n_elements*sizeof(int));
 #endif
     //initialize device memory
     int check;
     
     //TODO: fix CL_NV_DEVICE_WARP_SIZE not working
-    int threads_per_block= 32;//CL_NV_DEVICE_WARP_SIZE (not working for some reason)
+    int threads_per_block= 1;//CL_NV_DEVICE_WARP_SIZE (not working for some reason)
     int rw_blocks=(H.n_col +threads_per_block -1)/threads_per_block;
     int cw_blocks=(H.n_row +threads_per_block -1)/threads_per_block;
 
@@ -242,20 +239,35 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
         printf("]\n\n");
 
         printf("m:[");
-        cudaMemcpy(codeword_decoded,m,H.n_row*sizeof(int),cudaMemcpyDeviceToHost);
+        cudaMemcpy(codeword_decoded,m,H.n_col*sizeof(int),cudaMemcpyDeviceToHost);
         for(int i=0;i<H.n_col;i++){
             printf("%d,",codeword_decoded[i]);
         }
         printf("]\n\n");
 
-        cudaMemcpy(vector_debug_print,L,H.n_row*sizeof(float),cudaMemcpyDeviceToHost);
+        printf("dH:[");
+        cudaMemcpy(index_debug_print,dH,H.n_elements*sizeof(int),cudaMemcpyDeviceToHost);
+        for(int i=0;i<H.n_elements;i++){
+            printf("%d,",index_debug_print[i]);
+        }
+        printf("]\n\n");
+
+        printf("dHi:[");
+        cudaMemcpy(index_debug_print,dHi,H.n_elements*sizeof(int),cudaMemcpyDeviceToHost);
+        for(int i=0;i<H.n_row+1;i++){
+            printf("%d,",index_debug_print[i]);
+        }
+        printf("]\n\n");
+
+        printf("kernel 0:\n");
+        cudaMemcpy(vector_debug_print,L,H.n_col*sizeof(float),cudaMemcpyDeviceToHost);
         printf("L:[");
         for(int i=0;i<H.n_col;i++){
             printf("%f,",vector_debug_print[i]);
         }
         printf("]\n\n");
 
-        cudaMemcpy(vector_debug_print,r,H.n_row*sizeof(float),cudaMemcpyDeviceToHost);
+        cudaMemcpy(vector_debug_print,r,H.n_col*sizeof(float),cudaMemcpyDeviceToHost);
         printf("r:[");
         for(int i=0;i<H.n_col;i++){
             printf("%f,",vector_debug_print[i]);
@@ -280,6 +292,8 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
         GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, M, E, L, z, d_check);
         //GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, E, L, z, d_check);
 
+        cudaDeviceSynchronize();
+
 #ifdef DEBUG
         printf("iteration nº%d\n",try_n);
         cudaMemcpy(matrix_debug_print,M,H.n_elements*sizeof(float),cudaMemcpyDeviceToHost);
@@ -298,7 +312,7 @@ void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float 
         }
         printf("]\n\n");
 #endif
-        cudaDeviceSynchronize();
+        
 
         //kernel 2:
         GPU_sparse_column_wise<<<cw_blocks, threads_per_block>>>(H.n_elements, H.n_col, dH, E, r, L, z);
@@ -378,6 +392,8 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     fread(&(matrix->type),sizeof(int),1,f);
 
     if(matrix->type ==0){
+        printf("reading dense matrix!\n");
+        exit(1);
         //normal
         matrix->A = (int**)malloc(matrix->n_row*sizeof(int*));
         for(int r=0;r<matrix->n_row;r++){

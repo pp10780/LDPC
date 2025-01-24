@@ -95,7 +95,6 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
+-kernel 0 stopped working
 -makefile GPU a funcionar
--get iteration times for different matrices
--test the new col-wise kernel
 -fix CL_NV_DEVICE_WARP_SIZE not working
