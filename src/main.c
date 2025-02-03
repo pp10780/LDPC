@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <time.h>
 
 #include "encoding.h"
 #include "decoding.h"
@@ -114,12 +113,6 @@ int main(int argc, char *argv[]){
     printf("transmitted message:\n");
     print_vector_int(transmitted_mesage, message_size);
 #endif 
-   
-#ifdef TIMES
-    struct timespec clock_begin, clock_end;
-    clock_gettime(CLOCK_REALTIME, &clock_begin);
-#endif
-
 
     //DECODING
     if(H.type == 0){
@@ -133,15 +126,6 @@ int main(int argc, char *argv[]){
     else{
         sparse_decode(H,transmitted_mesage,codeword_decoded,error_rate);
     }
-
-    
-#ifdef TIMES
-    clock_gettime(CLOCK_REALTIME, &clock_end);
-    long seconds = clock_end.tv_sec - clock_begin.tv_sec;
-    long nanoseconds = clock_end.tv_nsec - clock_begin.tv_nsec;
-    double elapsed = seconds + nanoseconds*1e-9;
-    printf("decoding time: %f\n",elapsed);
-#endif
 
     if(codeword_decoded == NULL){
         printf("Not a valid codeword\n");
