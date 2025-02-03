@@ -10,7 +10,7 @@
 #include "sparse_decoding.h"
 
 #ifdef GPU
-#include "GPU_decoding.h"
+#include "GPU_sparse_decoding.h"
 #endif
 
 int *generate_random_key(int size){

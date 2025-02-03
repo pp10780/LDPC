@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "GPU_decoding.h"
+#include "GPU_sparse_decoding.h"
 #include "defs.h"
 
 //CL_NV_DEVICE_WARP_SIZE (not working for some reason)
