@@ -95,5 +95,6 @@ depois pega na terceira linha e da xor das duas
 
 ## TODO 
 
+-verify early termincation
 -research --gpu-architecture=compute_61 
 -fix CL_NV_DEVICE_WARP_SIZE not working
