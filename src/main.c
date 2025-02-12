@@ -116,16 +116,16 @@ int main(int argc, char *argv[]){
 #endif 
 
     //DECODING
-    if(H.type == 0){
+    if(H.type == 1){
 #ifndef GPU
-        decode(H, transmitted_mesage, codeword_decoded,error_rate);
+        sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
-        GPU_sparse_decode(H, transmitted_mesage, codeword_decoded);
+        GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,&error_rate);
 #endif
     }
     else{
-        sparse_decode(H,transmitted_mesage,codeword_decoded,error_rate);
+        decode(H,transmitted_mesage,codeword_decoded,error_rate);
     }
 
     if(codeword_decoded == NULL){

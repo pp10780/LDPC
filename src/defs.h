@@ -20,7 +20,7 @@
     } pchk;
 
     //#define GPU
-    #define DEBUG
+    //#define DEBUG
     //#define TIMES
-    //#define RESULT
+    #define RESULT
 #endif
