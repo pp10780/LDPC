@@ -10,4 +10,4 @@
 #include "defs.h"
 
 // Function to decode the message
-//void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float *error_rate);
+//void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float error_rate);

@@ -87,6 +87,7 @@ int main(int argc, char *argv[]){
 #endif
 
     srand(time(NULL));
+    //srand(900);
     int *key = generate_random_key(key_size);
 #ifdef RESULT
     printf("key to be encoded:\n");
@@ -118,9 +119,13 @@ int main(int argc, char *argv[]){
     //DECODING
     if(H.type == 1){
 #ifndef GPU
-        sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
+        //int tester[6] = {0,0,0,0,1,0};
+        //sparse_decode(H, tester, codeword_decoded,error_rate);
+        //sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
+        //int tester[6] = {0,0,0,0,1,0};
+        //GPU_sparse_decode(H, tester, codeword_decoded,&error_rate);
         GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,&error_rate);
 #endif
     }

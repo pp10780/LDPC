@@ -4,7 +4,6 @@ BINDIR = bin
 MATDIR = matrices
 CUDAPATH = /usr/local/cuda-12.4
 
-#remove GPU whilst testing
 #LDPC
 OBJS    = $(addprefix $(OBJDIR)/, main.o decoding.o encoding.o display_variables.o storage.o sparse_decoding.o GPU_sparse_decoding.o)
 SOURCE  = $(addprefix $(SRCDIR)/, main.cu decoding.cu encoding.cu display_variables.cu storage.cu sparse_decoding.c GPU_sparse_decoding.cu)

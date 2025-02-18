@@ -6,7 +6,7 @@
 
 //CL_NV_DEVICE_WARP_SIZE (not working for some reason)
 //TODO: fix CL_NV_DEVICE_WARP_SIZE not working
-const int THREADS_PER_BLOCK=16;
+const int THREADS_PER_BLOCK=32;
 
 //kernel 0: innit -> compute r and Li from m
 __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
@@ -24,37 +24,37 @@ __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
 __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float* E, float *L, int *z, int *d_check){
-
     float LE = 1; //row value used to compute E
     int j = blockIdx.x * blockDim.x + threadIdx.x; //the thread's assigned row
     int check=0;
     float p;
     
-    if(j > n_row)
-        return;
+    if(j < n_row){
+        //do full row for M [first recursion]
+        for (int i=Hi[j];i<Hi[j+1];i++){
 
-    //do full row for M [first recursion]
-    for (int i=Hi[j];i<Hi[j+1];i++){
+            //early termination check (this is being done in parallel)
+            check ^= z[H[i]];
+            
+            //store row value
+            LE *= tanh((L[H[i]] - E[i])/2);
+        }
 
-        //early termination check (this is being done in parallel)
-        check ^= z[H[i]];
-        
-        //store row value
-        LE *= tanh((L[H[i]] - E[i])/2);
+        //do full row for E [second recursion]
+        for (int i=Hi[j];i<Hi[j+1];i++){
+            //exclude corresponding element from row
+            //p = LE/(tanh(M[i]/2) );
+            p = LE/(tanh((L[H[i]] - E[i])/2) );
+            E[i] = log((1+p)/(1-p));
+        }
+
+        //this is probably very bad maybe do a reduction?
+        if(check == 1)
+            *d_check=1;
     }
-
-    //do full row for E [second recursion]
-    for (int i=Hi[j];i<Hi[j+1];i++){
-        //exclude corresponding element from row
-        //p = LE/(tanh(M[i]/2) );
-        p = LE/(tanh((L[H[i]] - E[i])/2) );
-        E[i] = log((1+p)/(1-p));
-    }
-
-    //this is probably very bad maybe do a reduction?
-    if(check == 1)
-        *d_check=1;
+    
 }
+
 /*
 //kernel 2: column wise -> compute L and z from E and r
 __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float* E, float* r,float *L, int *z){
@@ -107,7 +107,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     int current;
     for(int t=0;t<blockDim.x;t++){
         current=threadIdx.x+t;
-        if(current<blockDim.x)
+        if(current >= blockDim.x)
             current-=blockDim.x;
         b_L_val[current]+=t_L_val[current];
         __syncthreads();
@@ -118,17 +118,16 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
         return;
         
     L[i] = b_L_val[threadIdx.x];
-    z[i] = (b_L_val[threadIdx.x] < 0) ? 1 : 0;;
+    z[i] = (b_L_val[threadIdx.x] < 0) ? 1 : 0;
 }
-
 
 // Function to decode the message
 extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float *error_rate){
 
+
 #ifdef TIMES
     float time,tmememory,k0,k1=0,k2=0;
     cudaEvent_t start, stop, start2, stop2;
-
     //FILE *log;
     //log = fopen("times.txt", "a");
 
@@ -140,6 +139,7 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
 #endif
 
 #ifdef DEBUG
+    cudaError_t error1,error2;
     float   *matrix_debug_print=(float *)malloc(H.n_elements*sizeof(float));
     float   *vector_debug_print=(float *)malloc(H.n_col*sizeof(float));
     int     *index_debug_print=(int   *)malloc(H.n_elements*sizeof(int));
@@ -195,9 +195,12 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
 
     //kernel 0:
     GPU_sparse_apriori_probabilities<<<rw_blocks, threads_per_block>>>(H.n_col, init_prob, m, r, L);
-    cudaDeviceSynchronize();
+
 
 #ifdef DEBUG
+        cudaDeviceSynchronize();
+        error1 = cudaGetLastError();
+        printf("Error on kernel 0 %s\n", cudaGetErrorString(error1));
         printf("initialization:\n");
         printf("recv_codeword:[");
         for(int i=0;i<H.n_col;i++){
@@ -265,11 +268,13 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
         //printf("iteration number %d:\n",try_n);
 #endif
         //kernel 1:
+        printf("row:%d col:%d ele:%d\n",H.n_row,H.n_col,H.n_elements);
         GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, E, L, z, d_check);
 
-        cudaDeviceSynchronize();
-
 #ifdef DEBUG
+        cudaDeviceSynchronize();
+        error1 = cudaGetLastError();
+        printf("Error in GPU_sparse_row_wise %s\n", cudaGetErrorString(error1));
         printf("iteration nº%d\n",try_n);
 
         cudaMemcpy(matrix_debug_print,E,H.n_elements*sizeof(float),cudaMemcpyDeviceToHost);
@@ -295,16 +300,20 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
         GPU_sparse_column_wise<<<cw_blocks, threads_per_block>>>(H.n_elements, H.n_col, dH, E, r, L, z);
 
         //early termination (computing is done on kernel 1)
+        cudaDeviceSynchronize();
         cudaMemcpy(&check,d_check,1*sizeof(int),cudaMemcpyDeviceToHost);
 
+        check =1;
         if (check==0 && try_n!=0){
-            //printf("solution was found!\n");
+            printf("solution was found!\n");
             break;
         }
         //set early termination do occur
         cudaMemset(d_check,0,sizeof(int));
-            
-        cudaDeviceSynchronize();
+#ifdef DEBUG          
+        error2 = cudaGetLastError();
+        printf("Error in GPU_sparse_Column_wise %s\n", cudaGetErrorString(error2));
+#endif
 #ifdef TIMES
         //kernel 2 timings stop
         cudaEventRecord(stop2, 0);

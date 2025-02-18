@@ -13,7 +13,7 @@ int scheck_codeword(pchk H, int *codeword){
         }
             
     }
-    printf("succes terminating early\n");
+    printf("success terminating early\n");
     return 1;
 
 }
