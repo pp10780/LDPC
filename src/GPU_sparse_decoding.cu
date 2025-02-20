@@ -9,7 +9,7 @@
 const int THREADS_PER_BLOCK=32;
 
 //kernel 0: innit -> compute r and Li from m
-__global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L){
+__global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m, float *r, float *L, int *z){
     //llr_i corresponds to the initial llr that's attributed depending on the channel (-llr_i if == 1) 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -20,6 +20,7 @@ __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m
     //write to global memory
     r[index] = r_val;
     L[index] = r_val;
+    z[index] = (r_val < 0) ? 1 : 0;
 }
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
@@ -35,7 +36,6 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
 
             //early termination check (this is being done in parallel)
             check ^= z[H[i]];
-            
             //store row value
             LE *= tanh((L[H[i]] - E[i])/2);
         }
@@ -44,13 +44,15 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
         for (int i=Hi[j];i<Hi[j+1];i++){
             //exclude corresponding element from row
             //p = LE/(tanh(M[i]/2) );
-            p = LE/(tanh((L[H[i]] - E[i])/2) );
+            p  = LE/(tanh((L[H[i]] - E[i])/2) );
             E[i] = log((1+p)/(1-p));
         }
 
-        //this is probably very bad maybe do a reduction?
-        if(check == 1)
+        //TODO: use unified memory on this
+        if(check == 1){
             *d_check=1;
+        }
+            
     }
     
 }
@@ -72,7 +74,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     }
 
     L[i] = L_val;
-    z[i] = (L_val < 0) ? 1 : 0;;
+    z[i] = (L_val < 0) ? 1 : 0;
 }
 */
 
@@ -173,17 +175,16 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
     cudaMalloc((void **)&z, H.n_col * sizeof(int));
     cudaMalloc((void **)&m, H.n_col * sizeof(int));
 
-    //check
-    int check=0;
+    //early termination check
     int *d_check;
-    cudaMalloc((void **)&d_check, 1* sizeof(int));
-    cudaMemset(d_check,0,1);
+    cudaMallocManaged((void **)&d_check, 1* sizeof(int));
+    *d_check=0;
 
     //load inital data to device
     cudaMemcpy( m   , recv_codeword , H.n_col       * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy( dH  , H.A[0]        , H.n_elements  * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy( dHi , H.A[1]        , (H.n_row+1)   * sizeof(int), cudaMemcpyHostToDevice);
-
+    cudaDeviceSynchronize();
 #ifdef TIMES
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -194,11 +195,11 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
 #endif
 
     //kernel 0:
-    GPU_sparse_apriori_probabilities<<<rw_blocks, threads_per_block>>>(H.n_col, init_prob, m, r, L);
-
+    GPU_sparse_apriori_probabilities<<<rw_blocks, threads_per_block>>>(H.n_col, init_prob, m, r, L ,z);
+    cudaDeviceSynchronize();
 
 #ifdef DEBUG
-        cudaDeviceSynchronize();
+       
         error1 = cudaGetLastError();
         printf("Error on kernel 0 %s\n", cudaGetErrorString(error1));
         printf("initialization:\n");
@@ -243,9 +244,6 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
             printf("%f,",vector_debug_print[i]);
         }
         printf("]\n\n");
-
-        cudaMemcpy(&check,d_check,sizeof(int),cudaMemcpyDeviceToHost);
-        printf("check:%d\n\n",check);
 #endif
 #ifdef TIMES
     //kernel 0 / initialization timings
@@ -267,10 +265,10 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
         cudaEventRecord(start2, 0);
         //printf("iteration number %d:\n",try_n);
 #endif
+        printf("check:%d\n",*d_check);
         //kernel 1:
-        printf("row:%d col:%d ele:%d\n",H.n_row,H.n_col,H.n_elements);
         GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, E, L, z, d_check);
-
+        cudaDeviceSynchronize();
 #ifdef DEBUG
         cudaDeviceSynchronize();
         error1 = cudaGetLastError();
@@ -283,7 +281,17 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
         for(int i=0;i<H.n_elements;i++){
             printf("%f,",matrix_debug_print[i]);
         }
-        printf("]\n\n");
+        printf("]\n");
+
+        cudaMemcpy(codeword_decoded,z,H.n_col*sizeof(int),cudaMemcpyDeviceToHost);
+        printf("z:[");
+        for(int i =0;i<H.n_col;i++)
+            printf("%d ",codeword_decoded[i]);
+            printf("]\n");
+
+        printf("check:%d\n",*d_check);
+
+        
 #endif
 #ifdef TIMES
         //kernel 1 timings stop
@@ -295,24 +303,25 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
         //kernel 2 timings start
         cudaEventRecord(start2, 0);
 #endif
+        //early termination (computing is done on kernel 1)
+        if (*d_check==0){
+            printf("solution was found!\n");
+            break;
+        }
+        //set early termination to occur
+        *d_check=0;
+
 
         //kernel 2:
         GPU_sparse_column_wise<<<cw_blocks, threads_per_block>>>(H.n_elements, H.n_col, dH, E, r, L, z);
 
-        //early termination (computing is done on kernel 1)
         cudaDeviceSynchronize();
-        cudaMemcpy(&check,d_check,1*sizeof(int),cudaMemcpyDeviceToHost);
 
-        check =1;
-        if (check==0 && try_n!=0){
-            printf("solution was found!\n");
-            break;
-        }
-        //set early termination do occur
-        cudaMemset(d_check,0,sizeof(int));
+
 #ifdef DEBUG          
         error2 = cudaGetLastError();
-        printf("Error in GPU_sparse_Column_wise %s\n", cudaGetErrorString(error2));
+        printf("Error in GPU_sparse_Column_wise %s\n\n", cudaGetErrorString(error2));
+
 #endif
 #ifdef TIMES
         //kernel 2 timings stop
@@ -325,7 +334,7 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
     }
 
     //get results from the device
-    cudaMemcpy(codeword_decoded,z,H.n_row*sizeof(int),cudaMemcpyDeviceToHost);
+    cudaMemcpy(codeword_decoded,z,H.n_col*sizeof(int),cudaMemcpyDeviceToHost);
 
 #ifdef TIMES
     cudaEventRecord(stop, 0);

@@ -121,11 +121,11 @@ int main(int argc, char *argv[]){
 #ifndef GPU
         //int tester[6] = {0,0,0,0,1,0};
         //sparse_decode(H, tester, codeword_decoded,error_rate);
-        //sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
+        sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
-        //int tester[6] = {0,0,0,0,1,0};
-        //GPU_sparse_decode(H, tester, codeword_decoded,&error_rate);
+        // int tester[6] = {0,0,1,1,1,0};
+        // GPU_sparse_decode(H, tester, codeword_decoded,&error_rate);
         GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,&error_rate);
 #endif
     }
