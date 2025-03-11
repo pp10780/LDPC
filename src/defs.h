@@ -19,8 +19,8 @@
         int **A;
     } pchk;
 
-    #define GPU
-    #define DEBUG
+    //#define GPU
+    //#define DEBUG
     //#define TIMES
-    #define RESULT
+    //#define RESULT
 #endif

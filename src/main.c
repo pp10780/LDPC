@@ -23,12 +23,30 @@ int *generate_random_key(int size){
     return key;
 }
 
+int *generate_error_key(int size,float error_rate,int max_errors){
+    int *error_key = (int*)calloc(size,sizeof(int));
+    int random_pos;
+    int num_errors;
+
+    if(max_errors ==-1)
+        max_errors=size*error_rate;
+
+    for(num_errors=0; num_errors<max_errors; num_errors++){
+        for( random_pos= rand()%size; error_key[random_pos]==1;random_pos++){
+            if(random_pos+1 > size)
+                random_pos=-1;
+        }
+        error_key[random_pos]=1;
+    }
+    printf("added %d errors\n",num_errors);  
+    return error_key;
+}
+
 int* add_error(int *codeword,int codeword_size,float error_rate,int max_errors){
     int inverse=(1/error_rate),counter=0;
-    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));;
-    int c;
+    int *transmitted_mesage = (int*)malloc(codeword_size * sizeof(int));
 
-    for(c=0;c<codeword_size;c++){
+    for(int c=0;c<codeword_size;c++){
         //error
         if(rand() % inverse == 0 && (counter < max_errors || max_errors== -1) ){
             transmitted_mesage[c] = !codeword[c];
@@ -96,7 +114,8 @@ int main(int argc, char *argv[]){
     
     int *codeword_encoded   = (int*)calloc(message_size,sizeof(int));
     int *codeword_decoded   = (int*)calloc(message_size,sizeof(int));
-    int *transmitted_mesage;
+    int *transmitted_mesage = (int*)calloc(message_size,sizeof(int));
+    int *error_key;
 
 
     //ENCDODING
@@ -108,13 +127,22 @@ int main(int argc, char *argv[]){
     print_vector_int(codeword_encoded, message_size);
 #endif
 
-    //TRANSMISSIONs
-    transmitted_mesage = add_error(codeword_encoded,message_size,error_rate,max_errors);
-        
+    //TRANSMISSION
+    //error_key = add_error(codeword_encoded,message_size,error_rate,max_errors);
+    error_key = generate_error_key(message_size,error_rate,max_errors);
+
+    for(int i=0;i<message_size;i++)
+        transmitted_mesage[i]=error_key[i]^codeword_encoded[i];
+    
+    
 #ifdef RESULT
+    printf("error key:\n");
+    print_vector_int(error_key, message_size);
     printf("transmitted message:\n");
     print_vector_int(transmitted_mesage, message_size);
 #endif 
+    free(error_key);
+
 
     //DECODING
     if(H.type == 1){
@@ -166,5 +194,5 @@ int main(int argc, char *argv[]){
 
     if(correct)
         return 0;
-    return 0;
+    return 1;
 }

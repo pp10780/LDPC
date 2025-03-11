@@ -5,17 +5,17 @@ MATDIR = matrices
 CUDAPATH = /usr/local/cuda-12.4
 
 #LDPC
-OBJS    = $(addprefix $(OBJDIR)/, main.o decoding.o encoding.o display_variables.o storage.o sparse_decoding.o GPU_sparse_decoding.o)
-SOURCE  = $(addprefix $(SRCDIR)/, main.cu decoding.cu encoding.cu display_variables.cu storage.cu sparse_decoding.c GPU_sparse_decoding.cu)
-HEADER  = $(addprefix $(SRCDIR)/, decoding.h encoding.h defs.h display_variables.h storage.h sparse_decoding.h GPU_sparse_decoding.h) 
+OBJS    = $(addprefix $(OBJDIR)/, main.o decoding.o encoding.o display_variables.o storage.o sparse_decoding.o)
+SOURCE  = $(addprefix $(SRCDIR)/, main.cu decoding.cu encoding.cu display_variables.cu storage.cu sparse_decoding.c)
+HEADER  = $(addprefix $(SRCDIR)/, decoding.h encoding.h defs.h display_variables.h storage.h sparse_decoding.h) #GPU_sparse_decoding
 OUT     = $(BINDIR)/ldpc
 
 CC      = gcc
 FLAGS	= -std=c99 -g -c -Wall 
 NVCC 	= $(CUDAPATH)/bin/nvcc
-CUFLAGS	= --gpu-architecture=compute_61 -O3 -c
+CUFLAGS	= #--gpu-architecture=compute_61 -O3 -c
 MATH    = -lm
-LFLAGS = -L/$(CUDAPATH)/lib64 -lcudart
+LFLAGS = #-L/$(CUDAPATH)/lib64 -lcudart
 
 #COMPILING RULES
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADER) 
