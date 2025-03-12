@@ -13,6 +13,8 @@
 #include "GPU_sparse_decoding.h"
 #endif
 
+int iterations;
+
 int *generate_random_key(int size){
     int *key=(int *)malloc(size*sizeof(int));
     int i;
@@ -38,7 +40,9 @@ int *generate_error_key(int size,float error_rate,int max_errors){
         }
         error_key[random_pos]=1;
     }
+#ifdef VERBOSE
     printf("added %d errors\n",num_errors);  
+#endif
     return error_key;
 }
 
@@ -66,7 +70,7 @@ int main(int argc, char *argv[]){
     int g_flag=1;
     int key_size=0,message_size=0;
     //check input arguments
-    if(argc<3 || argc>5){
+    if(argc<3 || argc>6){
         printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath [error rate] [max errors]\n");
         exit(1);
     }
@@ -87,8 +91,9 @@ int main(int argc, char *argv[]){
            message_size=H.n_col;
         key_size=H.n_row;
         g_flag=0;
+        #ifdef VERBOSE
         printf("coding and decoding matrices do not match!\nusing a '0's message with size:%d\n",message_size);
-
+        #endif
     }
 	
 #ifdef DEBUG
@@ -104,8 +109,8 @@ int main(int argc, char *argv[]){
 
 #endif
 
-    srand(time(NULL));
-    //srand(900);
+    //srand(time(NULL));
+    srand(atoi(argv[5]));
     int *key = generate_random_key(key_size);
 #ifdef RESULT
     printf("key to be encoded:\n");
@@ -143,18 +148,19 @@ int main(int argc, char *argv[]){
 #endif 
     free(error_key);
 
-
+    //this will be the return value to evaluate performance
+    iterations=-1;
     //DECODING
     if(H.type == 1){
 #ifndef GPU
         //int tester[6] = {0,0,0,0,1,0};
         //sparse_decode(H, tester, codeword_decoded,error_rate);
-        sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
+        iterations=sparse_decode(H, transmitted_mesage, codeword_decoded,error_rate);
 #endif
 #ifdef GPU
         // int tester[6] = {0,0,1,1,1,0};
         // GPU_sparse_decode(H, tester, codeword_decoded,&error_rate);
-        GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,&error_rate);
+        iterations=GPU_sparse_decode(H, transmitted_mesage, codeword_decoded,&error_rate);
 #endif
     }
     else{
@@ -176,13 +182,17 @@ int main(int argc, char *argv[]){
     int c;
     for(c=0;c<message_size;c++){
         if(codeword_encoded[c] != codeword_decoded[c]){
+#ifdef VERBOSE
             printf("decoding is incorrect!\n");
+#endif
             correct=0;
             break;
         }
     }
     if(correct)
+#ifdef VERBOSE
         printf("decoding is correct!\n");
+#endif
 
     free_pchk(G);
     free_pchk(H);
@@ -193,6 +203,6 @@ int main(int argc, char *argv[]){
     free(codeword_decoded);
 
     if(correct)
-        return 0;
-    return 1;
+        return iterations;
+    return -1;
 }

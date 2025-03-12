@@ -132,7 +132,7 @@ void Get_state(pchk H, float *L, int *codeword_decoded, float *probabilities, fl
 }
 
 // Function to decode the message
-void decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
+int decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
 {
 #ifdef TIMES
     clock_t clock_end;
@@ -149,11 +149,11 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
 #ifdef DEBUG
         printf("Not a valid codeword\n");
 #endif
-        return ;
+        return 0;
     }
     if(check_codeword(H, recv_codeword) == 1){
         memcpy(codeword_decoded, recv_codeword, H.n_col * sizeof(int));
-        return ;
+        return 0;
     }
 
     // Initialize variables
@@ -260,5 +260,5 @@ void decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate)
     printf(" %ld",(clock_end-clock_start));
 #endif
 
-    return ;
+    return try_n;
 }

@@ -77,7 +77,7 @@ void **get_matrix_from_file(pchk *matrix,char *filename){
     //Open file to read
     if(f==NULL){
         printf("couldn't open matrix file %s\n",filename);
-        exit(1);
+        exit(-1);
     }    
 
     //matrix info

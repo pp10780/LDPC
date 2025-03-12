@@ -124,7 +124,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
 }
 
 // Function to decode the message
-extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float *error_rate){
+extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float *error_rate){
 
 
 #ifdef TIMES
@@ -352,7 +352,7 @@ extern "C" void GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_deco
     printf("%f\t%f\t%f\t%f\t\n",    tmememory,k0,k1/try_n*1000,k2/try_n*1000);
 #endif
 
-    return ;
+    return try_n;
 }
 
 /*HARD CODED EXAMPLE

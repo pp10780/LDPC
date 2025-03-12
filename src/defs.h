@@ -19,6 +19,7 @@
         int **A;
     } pchk;
 
+    //#define VERBOSE
     //#define GPU
     //#define DEBUG
     //#define TIMES

@@ -13,7 +13,9 @@ int scheck_codeword(pchk H, int *codeword){
         }
             
     }
+#ifdef VERBOSE
     printf("success terminating early\n");
+#endif
     return 1;
 
 }
@@ -94,7 +96,7 @@ void Mi(pchk H, float *M, float *LE, float *r){
 }
 
 // Function to decode the message
-void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate){
+int sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error_rate){
     float *r;
     float *M,*E; //these are matrices in csr
     float *L,*LE;
@@ -104,14 +106,14 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error
 #ifdef DEBUG
         printf("Not a valid codeword\n");
 #endif
-        return ;
+        return 0;
     }
     if(scheck_codeword(H, recv_codeword) == 1){
 #ifdef DEBUG
         printf("valid codeword no errors detected\n");
 #endif
         memcpy(codeword_decoded, recv_codeword, H.n_col * sizeof(int));
-        return ;
+        return 0;
     }
 
     // Initialize variables
@@ -190,5 +192,5 @@ void sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded,float error
     free(r);
     free(L);
     free(LE);
-    return ;
+    return try_n;
 }
