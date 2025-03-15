@@ -69,6 +69,7 @@ int main(int argc, char *argv[]){
     int max_errors = DEFAULT_MAX_ERRORS;
     int g_flag=1;
     int key_size=0,message_size=0;
+
     //check input arguments
     if(argc<3 || argc>6){
         printf("Incorrect usage!\n Correct usage is: ./ldpc G_filepath H_filepath [error rate] [max errors]\n");
@@ -78,6 +79,10 @@ int main(int argc, char *argv[]){
         error_rate=atof(argv[3]);
     if(argc>4)
         max_errors=atoi(argv[4]);
+    if(argc>5){
+        srand(atoi(argv[5]));
+    }else
+        srand(time(NULL));
 
     //get parity check matrices from file
     pchk H,G;
@@ -109,8 +114,6 @@ int main(int argc, char *argv[]){
 
 #endif
 
-    //srand(time(NULL));
-    srand(atoi(argv[5]));
     int *key = generate_random_key(key_size);
 #ifdef RESULT
     printf("key to be encoded:\n");
@@ -146,6 +149,7 @@ int main(int argc, char *argv[]){
     printf("transmitted message:\n");
     print_vector_int(transmitted_mesage, message_size);
 #endif 
+
     free(error_key);
 
     //this will be the return value to evaluate performance
@@ -174,6 +178,7 @@ int main(int argc, char *argv[]){
 
 
 #ifdef RESULT
+    printf("decoded message:\n");
     print_vector_int(codeword_decoded, message_size);
 #endif
 
@@ -189,9 +194,10 @@ int main(int argc, char *argv[]){
             break;
         }
     }
-    if(correct)
 #ifdef VERBOSE
+    if(correct)
         printf("decoding is correct!\n");
+    printf("iterations:%d\n",iterations);
 #endif
 
     free_pchk(G);

@@ -20,7 +20,7 @@ __global__ void GPU_sparse_apriori_probabilities(int n_col, float llr_i , int *m
     //write to global memory
     r[index] = r_val;
     L[index] = r_val;
-    z[index] = (r_val < 0) ? 1 : 0;
+    z[index]=m[index];
 }
 
 //kernel 1: row wise -> compute M and "LE" from L and E, then compute E from M and "LE"
@@ -29,7 +29,7 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
     int j = blockIdx.x * blockDim.x + threadIdx.x; //the thread's assigned row
     int check=0;
     float p;
-    
+
     if(j < n_row){
         //do full row for M [first recursion]
         for (int i=Hi[j];i<Hi[j+1];i++){
@@ -45,6 +45,7 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
             //exclude corresponding element from row
             //p = LE/(tanh(M[i]/2) );
             p  = LE/(tanh((L[H[i]] - E[i])/2) );
+            
             E[i] = log((1+p)/(1-p));
         }
 
@@ -58,6 +59,7 @@ __global__ void GPU_sparse_row_wise(int n_row, int n_col, int *H, int *Hi, float
 }
 
 /*
+//without using shared memory
 //kernel 2: column wise -> compute L and z from E and r
 __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float* E, float* r,float *L, int *z){
     int i = (blockIdx.x * blockDim.x + threadIdx.x);//the thread's assigned column
@@ -101,10 +103,14 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     
     //go through E column-wise only 1 block
     for(int si=elements_per_thread*threadIdx.x ; si<n_elements && si<elements_per_thread*(threadIdx.x+1); si++){
-        if( 0 < H[si]-block_start  || H[si]-block_start < blockDim.x )
-            t_L_val[H[si]-block_start]+=E[si];
-    }
+        //this is the index in relation to the warp  
+        int si_id = H[si]-block_start;
 
+        //check if this element belong to the warp and include it if so
+        if( 0 <= si_id && si_id < blockDim.x )
+            t_L_val[si_id]+=E[si];
+    }
+    
     //go through the shared memory in a round robin to get the full value of L
     int current;
     for(int t=0;t<blockDim.x;t++){
@@ -114,7 +120,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
         b_L_val[current]+=t_L_val[current];
         __syncthreads();
     }
-
+    
     //up until this point "extra" threads were being used for the shared memory so they will now be purged
     if(i > n_col)
         return;
@@ -123,6 +129,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     z[i] = (b_L_val[threadIdx.x] < 0) ? 1 : 0;
 }
 
+
 // Function to decode the message
 extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decoded, float *error_rate){
 
@@ -130,8 +137,6 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
 #ifdef TIMES
     float time,tmememory,k0,k1=0,k2=0;
     cudaEvent_t start, stop, start2, stop2;
-    //FILE *log;
-    //log = fopen("times.txt", "a");
 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -151,7 +156,7 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
     //thread control
     int threads_per_block= THREADS_PER_BLOCK;
     int rw_blocks=(H.n_col +threads_per_block -1)/threads_per_block;
-    int cw_blocks=(H.n_row +threads_per_block -1)/threads_per_block;
+    int cw_blocks=(H.n_col +threads_per_block -1)/threads_per_block;
 
     //initialize device memory
 
@@ -195,7 +200,7 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
 #endif
 
     //kernel 0:
-    GPU_sparse_apriori_probabilities<<<rw_blocks, threads_per_block>>>(H.n_col, init_prob, m, r, L ,z);
+    GPU_sparse_apriori_probabilities<<<cw_blocks, threads_per_block>>>(H.n_col, init_prob, m, r, L ,z);
     cudaDeviceSynchronize();
 
 #ifdef DEBUG
@@ -265,7 +270,6 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
         cudaEventRecord(start2, 0);
         //printf("iteration number %d:\n",try_n);
 #endif
-        printf("check:%d\n",*d_check);
         //kernel 1:
         GPU_sparse_row_wise<<<rw_blocks, threads_per_block>>>(H.n_row, H.n_col, dH, dHi, E, L, z, d_check);
         cudaDeviceSynchronize();
@@ -305,7 +309,9 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
 #endif
         //early termination (computing is done on kernel 1)
         if (*d_check==0){
+#ifdef VERBOSE
             printf("solution was found!\n");
+#endif
             break;
         }
         //set early termination to occur
@@ -346,9 +352,7 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
     printf(" average times k1: %f k2:%f\n",k1/try_n*1000,k2/try_n*1000);
     printf(" %ld",(clock_end-clock_start));
     cudaEventRecord(start, 0);
-
-    //this should be written to a log but when I add a file the program has a weird error
-    //printf(log,"%f\t%f\t%f\t%f\t\n",    tmememory,k0,k1/try_n*1000,k2/try_n*1000);
+    
     printf("%f\t%f\t%f\t%f\t\n",    tmememory,k0,k1/try_n*1000,k2/try_n*1000);
 #endif
 
