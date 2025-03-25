@@ -90,7 +90,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
 
     //initiate thread memory
     for(int t=0;t<blockDim.x;t++)
-        t_L_val[threadIdx.x]=0;
+        t_L_val[t]=0;
 
     //initiate shared memory
     if(i < n_col)
@@ -99,7 +99,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
 
     //the whole matrix is split into each thread of the block
     //this needs to be rounded up so every element is present (later it will be verified if it goes over)
-    int elements_per_thread = (n_elements+blockDim.x-1)/blockDim.x;
+    int elements_per_thread = (n_elements+THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK;
     
     //go through E column-wise only 1 block
     for(int si=elements_per_thread*threadIdx.x ; si<n_elements && si<elements_per_thread*(threadIdx.x+1); si++){
@@ -107,7 +107,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
         int si_id = H[si]-block_start;
 
         //check if this element belong to the warp and include it if so
-        if( 0 <= si_id && si_id < blockDim.x )
+        if( 0 <= si_id && si_id < THREADS_PER_BLOCK )
             t_L_val[si_id]+=E[si];
     }
     
@@ -115,7 +115,7 @@ __global__ void GPU_sparse_column_wise(int n_elements, int n_col, int *H, float*
     int current;
     for(int t=0;t<blockDim.x;t++){
         current=threadIdx.x+t;
-        if(current >= blockDim.x)
+        if(current >= THREADS_PER_BLOCK)
             current-=blockDim.x;
         b_L_val[current]+=t_L_val[current];
         __syncthreads();
@@ -137,6 +137,8 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
 #ifdef TIMES
     float time,tmememory,k0,k1=0,k2=0;
     cudaEvent_t start, stop, start2, stop2;
+    //FILE *log;
+    //log = fopen("times.txt", "a");
 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -194,7 +196,7 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
-    printf(" memory initialization time:%3.3f \n",time*1000);
+    //printf(" memory initialization time:%3.3f \n",time*1000);
     cudaEventRecord(start, 0);
     tmememory=time;
 #endif
@@ -255,7 +257,7 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
-    printf(" initialization time:%3.3f\n",time*1000);
+    //printf(" initialization time:%3.3f\n",time*1000);
     cudaEventRecord(start, 0);
     k0=time;
 #endif
@@ -346,14 +348,16 @@ extern "C" int GPU_sparse_decode(pchk H, int *recv_codeword, int *codeword_decod
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
-    printf(" %d iterations time:%3.3f \n",try_n,time*1000);
+    //printf(" %d iterations time:%3.3f \n",try_n,time*1000);
     //this average time may be imperfect due to the problem of adding a small float to a large one 
     //but for arround 200 iteration it shouldn't be a massive issue
-    printf(" average times k1: %f k2:%f\n",k1/try_n*1000,k2/try_n*1000);
-    printf(" %ld",(clock_end-clock_start));
+    //printf(" average times k1: %f k2:%f\n",k1/try_n*1000,k2/try_n*1000);
+    //printf(" %ld",(clock_end-clock_start));
     cudaEventRecord(start, 0);
-    
-    printf("%f\t%f\t%f\t%f\t\n",    tmememory,k0,k1/try_n*1000,k2/try_n*1000);
+
+    //this should be written to a log but when I add a file the program has a weird error
+    //printf(log,"%f\t%f\t%f\t%f\t\n",    tmememory,k0,k1/try_n*1000,k2/try_n*1000);
+    printf("%f\t%f\t%f\t%f\t%d\n",    tmememory*1000,k0*1000,k1*1000,k2*1000,try_n);
 #endif
 
     return try_n;
